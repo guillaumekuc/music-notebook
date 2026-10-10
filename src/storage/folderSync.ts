@@ -159,7 +159,7 @@ export class FolderSync extends EventTarget {
   async connect(): Promise<void> {
     let handle: FileSystemDirectoryHandle;
     try {
-      handle = await window.showDirectoryPicker!({ id: 'vex-fretboard', mode: 'readwrite' });
+      handle = await window.showDirectoryPicker!({ id: 'music-notebook', mode: 'readwrite' });
     } catch (e) {
       if ((e as DOMException).name === 'AbortError') return;
       throw e;

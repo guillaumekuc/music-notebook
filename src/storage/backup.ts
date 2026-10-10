@@ -5,7 +5,7 @@ import type { Folder, LibraryExport, Snippet } from './types';
 export function exportLibrary(library: Library): void {
   // Sync bookkeeping is per-device, so it stays out of the export.
   const data: LibraryExport = {
-    format: 'vex-fretboard-library',
+    format: 'music-notebook-library',
     version: 1,
     exportedAt: Date.now(),
     folders: library.allFolders().map(({ syncedPath: _p, syncedAt: _a, ...f }) => f),
@@ -14,7 +14,7 @@ export function exportLibrary(library: Library): void {
   };
   const date = new Date().toISOString().slice(0, 10);
   download(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }),
-    `fretboard-library-${date}.json`);
+    `music-notebook-library-${date}.json`);
 }
 
 export interface ImportResult {
@@ -31,7 +31,9 @@ export async function importLibrary(library: Library, file: File): Promise<Impor
   } catch {
     throw new Error('Not a valid JSON file');
   }
-  if (data?.format !== 'vex-fretboard-library' || !Array.isArray(data.snippets) || !Array.isArray(data.folders)) {
+  // Exports from before the rename use the old format name.
+  const formats = ['music-notebook-library', 'vex-fretboard-library'];
+  if (!formats.includes(data?.format) || !Array.isArray(data.snippets) || !Array.isArray(data.folders)) {
     throw new Error('Not a Music Notebook library export');
   }
 

@@ -1,8 +1,8 @@
-# Vex Fretboard
+# Music Notebook
 
-A single-page app for drawing guitar and bass fretboard diagrams from a small
-text language. It is built on a TypeScript port of
-[0xfe/fretboard](https://github.com/0xfe/fretboard).
+A single-page app for taking quick musical notes. It currently supports guitar
+and bass fretboard diagrams, written in a small text language and rendered with
+a TypeScript port of [0xfe/fretboard](https://github.com/0xfe/fretboard).
 
 - The preview re-renders as you type. If the code has an error, the last good
   render stays on screen (dimmed) and the error shows with its line number.

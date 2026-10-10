@@ -32,7 +32,7 @@ export async function importLibrary(library: Library, file: File): Promise<Impor
     throw new Error('Not a valid JSON file');
   }
   if (data?.format !== 'vex-fretboard-library' || !Array.isArray(data.snippets) || !Array.isArray(data.folders)) {
-    throw new Error('Not a Vex Fretboard library export');
+    throw new Error('Not a Music Notebook library export');
   }
 
   const result: ImportResult = { added: 0, updated: 0, skipped: 0 };

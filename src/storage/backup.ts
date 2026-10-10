@@ -1,6 +1,6 @@
 import { download } from '../util';
 import { normalizeTags, type Library } from './library';
-import type { Folder, LibraryExport, Snippet } from './types';
+import { SNIPPET_TYPES, type Folder, type LibraryExport, type Snippet } from './types';
 
 const toDataUrl = (blob: Blob) => new Promise<string>((resolve, reject) => {
   const reader = new FileReader();
@@ -97,7 +97,7 @@ export async function importLibrary(library: Library, file: File): Promise<Impor
     library.putSnippet({
       id: s.id,
       name: isString(s.name) && s.name.trim() ? s.name : 'Untitled',
-      type: s.type === 'markdown' ? 'markdown' : 'fretboard',
+      type: s.type && SNIPPET_TYPES.includes(s.type) ? s.type : 'fretboard',
       folderId: isString(s.folderId) && library.getFolder(s.folderId) ? s.folderId : null,
       tags: normalizeTags(Array.isArray(s.tags) ? s.tags.filter(isString) : []),
       code: s.code,

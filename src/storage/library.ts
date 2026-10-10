@@ -134,7 +134,7 @@ export class Library extends EventTarget {
   // The snippet a `[[name]]` link points to: names match ignoring case, and a
   // snippet in `folderId` wins over others, then the most recently edited.
   findByName(name: string, folderId: string | null = null): Snippet | undefined {
-    const wanted = name.trim().replace(/\.(md|fret)$/i, '').toLowerCase();
+    const wanted = name.trim().replace(/\.(md|fret|notation)$/i, '').toLowerCase();
     const matches = this.recentSnippets().filter((s) => s.name.toLowerCase() === wanted);
     return matches.find((s) => s.folderId === folderId) ?? matches[0];
   }

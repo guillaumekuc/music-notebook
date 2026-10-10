@@ -181,7 +181,7 @@ select,
   opacity: 0.4;
 }
 
-.stage canvas {
+.stage :is(canvas, svg) {
   display: block;
   flex: none;
 }
@@ -261,9 +261,10 @@ select,
   color: inherit;
 }
 
-/* Panels that belong to one snippet type are hidden for the other. */
-#app[data-type='fretboard'] [data-for='markdown'],
-#app[data-type='markdown'] [data-for='fretboard'] {
+/* Panels listed for some snippet types are hidden for the others. */
+#app[data-type='fretboard'] [data-for]:not([data-for~='fretboard']),
+#app[data-type='markdown'] [data-for]:not([data-for~='markdown']),
+#app[data-type='notation'] [data-for]:not([data-for~='notation']) {
   display: none;
 }
 
@@ -368,8 +369,8 @@ select,
   border-top: 1px solid var(--border);
 }
 
-/* Fretboards are drawn in black, so they sit on a light card in dark mode too. */
-.note .fretboard-block {
+/* Drawings are black, so they sit on a light card in dark mode too. */
+.note .music-block {
   margin: 0.75em 0;
   padding: 8px;
   background: var(--stage);
@@ -378,8 +379,10 @@ select,
   overflow-x: auto;
 }
 
-.note .fretboard-block img {
+.note .music-block :is(img, svg) {
   display: block;
+  max-width: 100%;
+  height: auto;
   margin: 0 auto;
 }
 

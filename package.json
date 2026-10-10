@@ -9,10 +9,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@vexflow-fonts/academico": "^1.0.1",
+    "@vexflow-fonts/bravura": "^1.0.2",
     "dompurify": "^3.4.16",
     "idb": "^8.0.3",
     "marked": "^18.1.0",
-    "paper": "^0.12.18"
+    "paper": "^0.12.18",
+    "vexflow": "^5.0.0"
   },
   "devDependencies": {
     "typescript": "^7.0.2",

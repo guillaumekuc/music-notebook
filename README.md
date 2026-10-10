@@ -5,10 +5,12 @@ A single-page app for taking quick musical notes. Each snippet is one of:
 - **Fretboard:** a guitar or bass fretboard diagram, written in a small text
   language and rendered with a TypeScript port of
   [0xfe/fretboard](https://github.com/0xfe/fretboard).
+- **Notation:** standard music notation, rendered with
+  [VexFlow](https://www.vexflow.com) (see [Notation syntax](#notation-syntax)).
 - **Markdown note:** plain notes in Markdown (GitHub flavour: tables, task lists,
   strikethrough). A single line break is kept as a line break.
 
-Create either kind with the buttons at the top of the library.
+Create each kind with the buttons at the top of the library.
 
 Markdown notes have a few music-notebook extras:
 
@@ -16,6 +18,11 @@ Markdown notes have a few music-notebook extras:
 ```fretboard                  a fretboard diagram inside the note,
 option frets=5                written in the fretboard syntax
 show fret=3 string=6 text=G
+```
+
+```notation                   music notation inside the note
+key D
+voice D5/q, C#5, B4, A4
 ```
 
 | Dm7 | G7 | Cmaj7 % |        a chord chart: one bar per cell
@@ -38,6 +45,8 @@ show fret=3 string=6 text=G
   good render stays on screen (dimmed) and the error shows with its line number.
 - **Save PNG** exports at 1×–4× scale, on white or a transparent background
   (shortcut: Ctrl/Cmd+Shift+S). **Save SVG** exports vector output.
+- **Save PNG** and **Save SVG** work for notation too; the SVG embeds the music
+  font, so it displays correctly anywhere.
 - **Save .md** downloads a Markdown note as a file.
 - **Copy share link** puts the code in the URL. Opening such a link shows it as a
   draft that you can save to your library. Shared Markdown is sanitised before
@@ -61,7 +70,7 @@ storage, so the app works offline and needs no server or account.
   Search and filter results show a thumbnail of each snippet.
 - **Use on several devices (Chrome/Edge):** click **Connect folder…** and pick a
   folder inside Dropbox, OneDrive, iCloud Drive or a git repo. The library is
-  mirrored there as real directories, `.fret` files and `.md` files:
+  mirrored there as real directories, `.fret`, `.notation` and `.md` files:
 
   ```
   Chords/
@@ -71,8 +80,8 @@ storage, so the app works offline and needs no server or account.
     Practice log.md
   ```
 
-  Each `.fret` file starts with an `# id / # name / # tags` header. These are
-  comments in the fretboard syntax, so every file is still valid fretboard code.
+  Each `.fret` and `.notation` file starts with an `# id / # name / # tags`
+  header. These are comments in both syntaxes, so every file is still valid code.
   Each `.md` file holds the same fields as YAML front matter; other front matter
   keys (from Obsidian, say) are kept. Any `.md` file in the folder becomes a
   note, so existing Markdown notes can be dropped in. Images live in an
@@ -91,7 +100,65 @@ Code: `src/storage/` (library, IndexedDB, folder sync, backup), `src/markdown.ts
 (Markdown rendering and its extensions) and `src/ui/` (sidebar, snippet header,
 note view, Markdown editor keys).
 
-## Syntax
+## Notation syntax
+
+Notes are written in VexFlow's
+[EasyScore](https://github.com/0xfe/vexflow/wiki/Using-EasyScore) syntax. EasyScore
+only describes notes, so this format adds measures, staves, tab and the marks
+EasyScore leaves to code. Where it can, it borrows from ABC and LilyPond.
+
+```
+clef treble                    treble, bass, alto, tenor, percussion
+key G                          key signature: C, G, D, F, Bb, F#, Am, Em, ...
+time 4/4                       time signature (C for common time)
+tempo "Allegro" q=132          tempo mark (or just: tempo 120)
+width 700                      width in px; measures wrap onto new lines
+voice G4/q, A4, B4, C5 | D5/8, E5, F#5, G5, D5/h | (G4 B4 D5)/1
+voice G3/h, D4 | B3/1 | G3/1   a second voice
+lyrics Hel- lo world           one word per note of the voice above
+```
+
+**Notes.** `C#4`, `Bb4`, `Fn4` (natural); durations `/w /h /q /8 /16` carry on
+to the next notes until changed, also across bar lines; `C4/q.` is dotted;
+`(C4 E4 G4)/h` is a chord; `B4/q/r` is a rest. EasyScore's own options, like
+`C4/q[fingerings="1"]`, work too.
+
+| Write | For |
+| --- | --- |
+| `C4/h~, C4/q` | a tie, also across bar lines and line breaks |
+| `(C4/8, D4, E4)` | a slur: `(` before the first note, `)` after the last |
+| `{C5/8, D5, E5}` | a triplet; `{5:4 ...}` for another ratio |
+| `.C4` `-C4` `>C4` `^C4` `@C4` | staccato, tenuto, accent, marcato, fermata |
+| `"Am7"C4` / `_"rit."C4` | text above (chord symbols) / below the staff |
+| `!mf!C4` | dynamics: `ppp` to `fff`, `sfz`, `fp`, ... |
+| `\|\|` `\|]` `\|:` `:\|` `:\|:` | double, final and repeat bar lines |
+| `[key D]` `[time 3/4]` `[clef bass]` | a change, at the start of a measure |
+
+**Staves.** `staff bass` starts another staff; voices after it belong to it. Two
+notation staves are drawn as a grand staff with a brace.
+
+**Tab.** `staff tab` starts a guitar tab staff; `staff tab notation` also draws
+the notes in standard notation above it, worked out from the frets.
+`tuning=` takes `standard`, `dropd`, `dadgad`, `open-g`, `open-d`,
+`half-step-down`, `bass`, `bass-5`, `standard-7`, `ukulele`, or notes like
+`E/5,B/4,G/4,D/4,A/3,E/3`. Tab notes are `fret/string`: `5/3`,
+`(0/1 1/2 0/3)/h` for a chord, `x/6` muted, `r/q` a rest. After a note, `h`, `p`
+and `s` make a hammer-on, pull-off or slide to the next note; `b` bends it and
+`v` adds vibrato.
+
+Write notes as they sound: the key signature decides which accidentals are
+drawn, and accidentals carry through the measure. Short notes are beamed
+automatically; with two voices the first has stems up and the second down.
+Lines starting with `#` are comments.
+
+**Not supported yet:** grace notes, volta brackets (1st/2nd endings),
+crescendo hairpins, ottava lines, cross-staff beams and multi-measure rests.
+
+Code: `src/notation/` (`parse.ts` reads the text, `render.ts` lays it out with
+VexFlow). The music fonts (Bravura and Academico, SIL OFL) are bundled, so
+notation works offline.
+
+## Fretboard syntax
 
 ```
 fretboard                         # optional header, ignored

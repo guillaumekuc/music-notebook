@@ -1,5 +1,6 @@
 import { FretboardDiv } from '../fretboard';
-import { renderMarkdown } from '../markdown';
+import { renderMarkdown, type MusicBlock } from '../markdown';
+import { renderNotation } from '../notation';
 import type { Library } from '../storage/library';
 import { escapeHtml } from '../util';
 
@@ -10,10 +11,10 @@ export interface NoteViewHandlers {
   setTask(index: number, checked: boolean): void;
 }
 
-type Drawing = { url: string } | { error: string };
+type Drawing = { url: string } | { svg: SVGSVGElement } | { error: string };
 
 // Shows a rendered Markdown note, and brings its parts to life: ```fretboard
-// blocks become diagrams, [[links]] open snippets, task boxes can be ticked
+// and ```notation blocks become drawings, [[links]] open snippets, task boxes can be ticked
 // and pasted images load from the library.
 export class NoteView {
   private readonly drawings = new Map<string, Drawing>();
@@ -37,14 +38,16 @@ export class NoteView {
   }
 
   render(text: string): void {
-    const { html, fretboards } = renderMarkdown(text);
+    const { html, blocks } = renderMarkdown(text);
     this.el.innerHTML = html;
 
-    for (const block of this.el.querySelectorAll<HTMLElement>('.fretboard-block')) {
-      const drawing = this.draw(fretboards[Number(block.dataset.block)] ?? '');
-      block.innerHTML = 'url' in drawing
-        ? `<img src="${drawing.url}" alt="Fretboard diagram" />`
-        : `<p class="block-error">${escapeHtml(drawing.error)}</p>`;
+    for (const el of this.el.querySelectorAll<HTMLElement>('.music-block')) {
+      const block = blocks[Number(el.dataset.block)];
+      if (!block) continue;
+      const drawing = this.draw(block);
+      if ('svg' in drawing) el.replaceChildren(drawing.svg.cloneNode(true));
+      else if ('url' in drawing) el.innerHTML = `<img src="${drawing.url}" alt="Fretboard diagram" />`;
+      else el.innerHTML = `<p class="block-error">${escapeHtml(drawing.error)}</p>`;
     }
 
     for (const link of this.el.querySelectorAll<HTMLAnchorElement>('a.wikilink')) {
@@ -60,13 +63,23 @@ export class NoteView {
     for (const img of this.el.querySelectorAll<HTMLImageElement>('img[data-asset]')) void this.loadImage(img);
   }
 
-  // Fretboards are drawn as SVG, so they stay sharp at any size, and cached by
-  // code so typing elsewhere in the note doesn't redraw them.
-  private draw(code: string): Drawing {
-    const cached = this.drawings.get(code);
+  // Drawings are SVG, so they stay sharp at any size, and cached by code so
+  // typing elsewhere in the note doesn't redraw them. Notation stays inline so
+  // it can use the page's music font.
+  private draw({ kind, code }: MusicBlock): Drawing {
+    const key = `${kind}:${code}`;
+    const cached = this.drawings.get(key);
     if (cached) return cached;
-    const div = new FretboardDiv();
     let drawing: Drawing;
+    if (kind === 'notation') {
+      try {
+        drawing = { svg: renderNotation(code).svg };
+      } catch (e) {
+        drawing = { error: e instanceof Error ? e.message : String(e) };
+      }
+      return this.remember(key, drawing);
+    }
+    const div = new FretboardDiv();
     try {
       div.build(code);
       let svg = div.scope!.project.exportSVG({ asString: true, bounds: 'view' }) as string;
@@ -78,8 +91,12 @@ export class NoteView {
     } finally {
       div.destroy();
     }
+    return this.remember(key, drawing);
+  }
+
+  private remember(key: string, drawing: Drawing): Drawing {
     if (this.drawings.size > 200) this.drawings.clear();
-    this.drawings.set(code, drawing);
+    this.drawings.set(key, drawing);
     return drawing;
   }
 

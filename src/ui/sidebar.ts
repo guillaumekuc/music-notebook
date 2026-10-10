@@ -3,7 +3,7 @@ import { FolderSync } from '../storage/folderSync';
 import { exportLibrary, importLibrary } from '../storage/backup';
 import { escapeHtml, timeAgo } from '../util';
 import { icons } from './icons';
-import { thumbnail } from './thumbnail';
+import { notationThumbnail, thumbnail } from './thumbnail';
 import { markdownExcerpt } from '../markdown';
 import type { SnippetType } from '../storage/types';
 import { toast } from './toast';
@@ -15,6 +15,7 @@ export interface SidebarHandlers {
 }
 
 const EXPANDED_KEY = 'music-notebook:expanded';
+const TYPE_ICON = { fretboard: 'fretboard', markdown: 'note', notation: 'notation' } as const;
 const DRAG_TYPE = 'application/x-music-notebook';
 
 export class Sidebar {
@@ -43,6 +44,7 @@ export class Sidebar {
         <h2>Library</h2>
         <div class="sb-head-actions">
           <button type="button" class="icon-btn" data-act="new-fretboard" title="New fretboard" aria-label="New fretboard">${icons.newFretboard}</button>
+          <button type="button" class="icon-btn" data-act="new-notation" title="New notation" aria-label="New notation">${icons.newNotation}</button>
           <button type="button" class="icon-btn" data-act="new-note" title="New Markdown note" aria-label="New Markdown note">${icons.newNote}</button>
           <button type="button" class="icon-btn" data-act="new-folder" title="New folder" aria-label="New folder">${icons.folderPlus}</button>
           <button type="button" class="icon-btn only-narrow" data-act="close" title="Close" aria-label="Close library">${icons.close}</button>
@@ -148,7 +150,7 @@ export class Sidebar {
           <div class="row snippet-row${s.id === currentId ? ' current' : ''}" data-kind="snippet" data-id="${s.id}"
             draggable="true" style="--depth:${depth}" ${s.id === currentId ? 'aria-current="true"' : ''}>
             <span class="caret-space"></span>
-            <span class="row-icon">${icons[s.type === 'markdown' ? 'note' : 'fretboard']}</span>
+            <span class="row-icon">${icons[TYPE_ICON[s.type]]}</span>
             <span class="row-name">${escapeHtml(s.name)}</span>
           </div>`);
       }
@@ -187,6 +189,12 @@ export class Sidebar {
         if (s?.type === 'markdown') {
           el.classList.add('text');
           el.textContent = markdownExcerpt(s.code) || 'Empty note';
+          continue;
+        }
+        if (s?.type === 'notation') {
+          const svg = notationThumbnail(s.code);
+          if (svg) el.append(svg);
+          else el.classList.add('broken');
           continue;
         }
         const url = s ? thumbnail(s.code) : null;
@@ -250,6 +258,9 @@ export class Sidebar {
       switch (act) {
         case 'new-fretboard':
           this.handlers.newSnippet(this.selectedFolderId, 'fretboard');
+          return;
+        case 'new-notation':
+          this.handlers.newSnippet(this.selectedFolderId, 'notation');
           return;
         case 'new-note':
           this.handlers.newSnippet(this.selectedFolderId, 'markdown');

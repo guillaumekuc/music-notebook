@@ -29,6 +29,18 @@ export interface Snippet {
   syncedMtime?: number;
 }
 
+// Pasted images are referenced from notes as `attachments/<name>`, and folder
+// sync keeps them in a directory of that name.
+export const ATTACHMENTS_DIR = 'attachments';
+
+// An image pasted into a note.
+export interface Asset {
+  name: string;
+  type: string;
+  blob: Blob;
+  createdAt: number;
+}
+
 // Remembers deletions so folder sync can remove the matching file/directory.
 export interface Tombstone {
   id: string;
@@ -43,4 +55,6 @@ export interface LibraryExport {
   exportedAt: number;
   folders: Folder[];
   snippets: Snippet[];
+  // Images as data URLs (added after version 1, so may be missing).
+  assets?: { name: string; type: string; data: string }[];
 }

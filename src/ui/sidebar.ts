@@ -292,7 +292,7 @@ export class Sidebar {
           void this.sync.disconnect().then(() => toast('Folder sync turned off. Your files were left in place.'));
           return;
         case 'export':
-          exportLibrary(lib);
+          void exportLibrary(lib);
           return;
         case 'import':
           this.importInput.click();

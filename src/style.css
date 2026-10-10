@@ -367,3 +367,85 @@ select,
   border: 0;
   border-top: 1px solid var(--border);
 }
+
+/* Fretboards are drawn in black, so they sit on a light card in dark mode too. */
+.note .fretboard-block {
+  margin: 0.75em 0;
+  padding: 8px;
+  background: var(--stage);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+.note .fretboard-block img {
+  display: block;
+  margin: 0 auto;
+}
+
+.note .block-error {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--error);
+}
+
+.note .missing-image {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  border: 1px dashed var(--border);
+  border-radius: 4px;
+}
+
+.note a.wikilink {
+  text-decoration-style: dotted;
+}
+
+.note a.wikilink.missing {
+  color: var(--muted);
+}
+
+.note .chord-chart {
+  margin: 0.75em 0;
+  font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Consolas, monospace;
+  font-size: 1.05rem;
+}
+
+.note .chart-row {
+  display: flex;
+  border-left: 2px solid var(--text);
+}
+
+.note .chart-bar {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  gap: 0.75em;
+  padding: 4px 10px;
+  border-right: 2px solid var(--text);
+}
+
+.note .chart-row + .chart-row {
+  margin-top: 6px;
+}
+
+/* View modes for Markdown notes. */
+#app[data-type='markdown'][data-view='preview'] :is(#code, .code-foot, .reference) {
+  display: none;
+}
+
+@media (min-width: 1100px) {
+  #app[data-type='markdown'][data-view='side'] .layout {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+
+  #app[data-type='markdown'][data-view='side'] .layout > .panel:last-child {
+    order: -1;
+  }
+
+  #app[data-type='markdown'][data-view='side'] .code {
+    min-height: 60vh;
+  }
+}

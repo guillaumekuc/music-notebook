@@ -2,7 +2,19 @@ import { download } from '../util';
 import { normalizeTags, type Library } from './library';
 import type { Folder, LibraryExport, Snippet } from './types';
 
-export function exportLibrary(library: Library): void {
+const toDataUrl = (blob: Blob) => new Promise<string>((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => resolve(reader.result as string);
+  reader.onerror = () => reject(reader.error);
+  reader.readAsDataURL(blob);
+});
+
+export async function exportLibrary(library: Library): Promise<void> {
+  const assets: NonNullable<LibraryExport['assets']> = [];
+  for (const name of library.assetNames()) {
+    const asset = await library.getAsset(name);
+    if (asset) assets.push({ name, type: asset.type, data: await toDataUrl(asset.blob) });
+  }
   // Sync bookkeeping is per-device, so it stays out of the export.
   const data: LibraryExport = {
     format: 'music-notebook-library',
@@ -11,6 +23,7 @@ export function exportLibrary(library: Library): void {
     folders: library.allFolders().map(({ syncedPath: _p, syncedAt: _a, ...f }) => f),
     snippets: library.allSnippets().map(
       ({ syncedAt: _a, syncedPath: _p, syncedHash: _h, syncedMtime: _m, ...s }) => s),
+    assets,
   };
   const date = new Date().toISOString().slice(0, 10);
   download(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }),
@@ -39,6 +52,14 @@ export async function importLibrary(library: Library, file: File): Promise<Impor
 
   const result: ImportResult = { added: 0, updated: 0, skipped: 0 };
   const isString = (v: unknown): v is string => typeof v === 'string';
+
+  // Images are named uniquely, so one already here is the same image.
+  for (const a of Array.isArray(data.assets) ? data.assets : []) {
+    if (!isString(a?.name) || !isString(a.data) || library.hasAsset(a.name)) continue;
+    if (!a.data.startsWith('data:image/') || a.name.includes('/')) continue;
+    const blob = await (await fetch(a.data)).blob();
+    await library.putAsset({ name: a.name, type: blob.type, blob, createdAt: Date.now() });
+  }
 
   // Folders first so snippets can reference them; parents may come later in
   // the list, so dangling parents are fixed up afterwards.

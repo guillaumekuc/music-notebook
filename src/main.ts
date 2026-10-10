@@ -5,7 +5,9 @@ import { EXAMPLES } from './examples';
 import { Library, type SnippetInit } from './storage/library';
 import { FolderSync, sanitizeName } from './storage/folderSync';
 import type { SnippetType } from './storage/types';
-import { renderMarkdown, wordCount } from './markdown';
+import { setTask, wordCount } from './markdown';
+import { NoteView } from './ui/noteView';
+import { attachMarkdownEditor } from './ui/markdownEditor';
 import { Sidebar } from './ui/sidebar';
 import { SnippetMeta } from './ui/snippetMeta';
 import { icons } from './ui/icons';
@@ -19,6 +21,8 @@ const NEW_SNIPPET_CODE: Record<SnippetType, string> = {
 };
 // Share links carry the code in the hash, with a prefix per type.
 const SHARE_PREFIX: Record<SnippetType, string> = { fretboard: 'code', markdown: 'md' };
+const NOTE_VIEW_KEY = 'music-notebook:note-view';
+const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML = `
@@ -52,6 +56,13 @@ app.innerHTML = `
             <button type="button" id="save-png" class="btn btn-primary" title="Ctrl+Shift+S">Save PNG</button>
           </div>
           <div class="actions" data-for="markdown">
+            <label class="field">View
+              <select id="note-view">
+                <option value="stacked">Stacked</option>
+                <option value="side">Side by side</option>
+                <option value="preview">Preview only</option>
+              </select>
+            </label>
             <button type="button" id="save-md" class="btn">Save .md</button>
           </div>
         </div>
@@ -107,7 +118,15 @@ show ... color=red fill-color=white outline and fill colour</pre>
 | Chord | Shape |
 | ----- | ----- |
 | C     | x32010 |</pre>
-            <p>A single line break is kept as a line break.</p>
+            <h3>Music notebook extras</h3>
+            <pre>\`\`\`fretboard           a fretboard diagram, in the
+show notes=5/6,7/6     fretboard syntax
+\`\`\`
+| Dm7 | G7 | Cmaj7 % |  a chord chart (one bar per cell)
+[[G major]]             link to a snippet by name
+[[G major|the shape]]   … with your own label</pre>
+            <p>A single line break is kept as a line break. Paste or drop an image to add it.
+              Ctrl+B bold · Ctrl+I italic · Ctrl+K link · Enter continues a list.</p>
           </div>
         </details>
       </section>
@@ -132,11 +151,20 @@ const savePngButton = $<HTMLButtonElement>('#save-png');
 const saveSvgButton = $<HTMLButtonElement>('#save-svg');
 const copyLinkButton = $<HTMLButtonElement>('#copy-link');
 const saveMdButton = $<HTMLButtonElement>('#save-md');
+const noteViewSelect = $<HTMLSelectElement>('#note-view');
 
 const library = new Library();
 const sync = new FolderSync(library);
 let sidebar: Sidebar;
 let meta: SnippetMeta;
+const noteView = new NoteView(note, library, {
+  folderId: () => (currentId ? library.getSnippet(currentId)?.folderId ?? null : sidebar.selectedFolderId),
+  openLink,
+  setTask: (index, checked) => {
+    codeInput.value = setTask(codeInput.value, index, checked);
+    onCodeEdited();
+  },
+});
 
 // The open snippet: a library snippet (currentId), or a draft from a share link.
 let currentId: string | null = null;
@@ -191,7 +219,7 @@ function render() {
 }
 
 function renderNote() {
-  note.innerHTML = renderMarkdown(codeInput.value);
+  noteView.render(codeInput.value);
   const words = wordCount(codeInput.value);
   setStatus(`${words} word${words === 1 ? '' : 's'}`, 'info');
 }
@@ -308,9 +336,61 @@ function refreshCurrent() {
       codeInput.value = s.code;
       codeInput.setSelectionRange(selectionStart, selectionEnd);
       render();
+    } else if (currentType === 'markdown') {
+      // Links and images in the note may point at what just changed.
+      renderNote();
     }
     meta.show(s);
   });
+}
+
+// Opens the snippet a [[link]] names, or creates a note by that name.
+function openLink(target: string) {
+  const folderId = currentId ? library.getSnippet(currentId)?.folderId ?? null : sidebar.selectedFolderId;
+  const found = library.findByName(target, folderId);
+  if (found) return openSnippet(found.id);
+  newSnippet(folderId, { type: 'markdown', name: target });
+  codeInput.focus();
+  toast(`Created note “${target}”`);
+}
+
+const IMAGE_EXT: Record<string, string> = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/gif': 'gif',
+  'image/webp': 'webp',
+  'image/avif': 'avif',
+};
+
+// Stores a pasted or dropped image; returns its attachment name.
+async function saveImage(file: File): Promise<string> {
+  const ext = IMAGE_EXT[file.type];
+  if (!ext) {
+    toast(`Images of type ${file.type} are not supported`);
+    throw new Error(`Unsupported image type ${file.type}`);
+  }
+  if (file.size > MAX_IMAGE_BYTES) {
+    toast('Images over 20 MB are not supported');
+    throw new Error('Image too large');
+  }
+  // Clipboard images are all called "image.png", so they get a timestamp.
+  const given = file.name.replace(/\.[^.]*$/, '');
+  const stamp = new Date().toISOString().replace(/\D/g, '').slice(0, 14);
+  const base = given && given.toLowerCase() !== 'image' ? sanitizeName(given) : `Pasted image ${stamp}`;
+  const name = library.newAssetName(base, ext);
+  await library.putAsset({ name, type: file.type, blob: file, createdAt: Date.now() });
+  return name;
+}
+
+function setNoteView(view: string) {
+  if (!['stacked', 'side', 'preview'].includes(view)) view = 'stacked';
+  app.dataset.view = view;
+  noteViewSelect.value = view;
+  try {
+    localStorage.setItem(NOTE_VIEW_KEY, view);
+  } catch {
+    // ignore
+  }
 }
 
 // --- Share links ---
@@ -434,6 +514,8 @@ function wireEditor() {
   savePngButton.addEventListener('click', savePng);
   saveSvgButton.addEventListener('click', saveSvg);
   saveMdButton.addEventListener('click', saveMarkdown);
+  noteViewSelect.addEventListener('change', () => setNoteView(noteViewSelect.value));
+  attachMarkdownEditor(codeInput, { active: () => currentType === 'markdown', saveImage });
 
   copyLinkButton.addEventListener('click', async () => {
     const url = `${location.origin}${location.pathname}#${SHARE_PREFIX[currentType]}=${encodeCode(codeInput.value)}`;
@@ -489,6 +571,13 @@ function saveDraft() {
 
 async function start() {
   app.dataset.type = currentType;
+  let view = 'stacked';
+  try {
+    view = localStorage.getItem(NOTE_VIEW_KEY) ?? view;
+  } catch {
+    // ignore
+  }
+  setNoteView(view);
   setButtonsEnabled(false);
   try {
     await library.init();

@@ -5,12 +5,13 @@
 //   fretboard syntax, so every file is still valid fretboard code;
 // - Markdown notes are `<name>.md`, with the header as YAML front matter, which
 //   Markdown editors and previewers understand.
+// Images pasted into notes go in an `attachments` directory at the top.
 // Put the directory in Dropbox/OneDrive/a git repo and the library follows you
 // to other devices.
 
 import { hashString } from '../util';
 import { normalizeTags, type Library } from './library';
-import type { Folder, Snippet, SnippetType } from './types';
+import { ATTACHMENTS_DIR, type Folder, type Snippet, type SnippetType } from './types';
 
 export type SyncStatus = 'unsupported' | 'disconnected' | 'needs-permission' | 'idle' | 'syncing' | 'error';
 
@@ -49,6 +50,16 @@ const depth = (path: string) => (path ? path.split('/').length : 0);
 const dirOf = (path: string) => path.split('/').slice(0, -1);
 const stripExt = (name: string) => name.replace(/\.(fret|md)$/i, '');
 const baseName = (path: string) => stripExt(path.split('/').pop()!);
+
+const IMAGE_TYPES: Record<string, string> = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  avif: 'image/avif',
+};
+const imageType = (name: string) => IMAGE_TYPES[name.split('.').pop()!.toLowerCase()];
 
 function typeOfFile(name: string): SnippetType | null {
   const lower = name.toLowerCase();
@@ -512,6 +523,43 @@ export class FolderSync extends EventTarget {
       if (d && !livePaths.has(d)) await removeDirIfEmpty(root, d);
     }
     for (const t of lib.tombstones()) lib.removeTombstone(t.id);
+
+    await this.syncAttachments(root);
+  }
+
+  // Images are only ever added: new ones are copied each way, and a file
+  // deleted from the folder is written again.
+  private async syncAttachments(root: FileSystemDirectoryHandle): Promise<void> {
+    const lib = this.library;
+    let dir: FileSystemDirectoryHandle;
+    try {
+      dir = await root.getDirectoryHandle(ATTACHMENTS_DIR, { create: lib.assetNames().length > 0 });
+    } catch (e) {
+      if ((e as DOMException).name === 'NotFoundError') return;
+      throw e;
+    }
+
+    const remote = new Map<string, FileSystemFileHandle>();
+    for await (const [name, handle] of dir.entries()) {
+      if (handle.kind === 'file' && imageType(name)) remote.set(name.toLowerCase(), handle as FileSystemFileHandle);
+    }
+    const local = new Set(lib.assetNames().map((n) => n.toLowerCase()));
+
+    for (const name of lib.assetNames()) {
+      if (remote.has(name.toLowerCase())) continue;
+      const asset = await lib.getAsset(name);
+      if (!asset) continue;
+      const writable = await (await dir.getFileHandle(name, { create: true })).createWritable();
+      await writable.write(asset.blob);
+      await writable.close();
+    }
+    for (const [lower, handle] of remote) {
+      if (local.has(lower)) continue;
+      const file = await handle.getFile();
+      const type = imageType(handle.name);
+      const blob = new Blob([await file.arrayBuffer()], { type });
+      await lib.putAsset({ name: handle.name, type, blob, createdAt: file.lastModified }, 'sync');
+    }
   }
 
   // Directory path for every folder, keeping existing names stable.
@@ -519,7 +567,8 @@ export class FolderSync extends EventTarget {
     const lib = this.library;
     const paths = new Map<string, string>();
     const visit = (parentId: string | null, parentPath: string) => {
-      const taken = new Set<string>();
+      // The attachments directory is not a folder.
+      const taken = new Set<string>(parentId == null ? [ATTACHMENTS_DIR] : []);
       const children = lib.childFolders(parentId).sort(stableOrder(parentPath));
       for (const f of children) {
         const previous = f.syncedPath && key(dirOf(f.syncedPath)) === parentPath ? baseName(f.syncedPath) : undefined;
@@ -577,6 +626,7 @@ async function scan(
 ): Promise<void> {
   for await (const [name, handle] of dir.entries()) {
     if (name.startsWith('.')) continue;
+    if (!prefix.length && name.toLowerCase() === ATTACHMENTS_DIR) continue;
     const parts = [...prefix, name];
     if (handle.kind === 'directory') {
       dirs.add(key(parts));

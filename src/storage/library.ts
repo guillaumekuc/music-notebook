@@ -3,7 +3,7 @@
 // interface the UI uses; folder sync and backup work through it too.
 
 import { openLibraryDB, type LibraryDB } from './db';
-import type { Folder, Snippet, Tombstone } from './types';
+import type { Asset, Folder, Snippet, Tombstone } from './types';
 
 const LEGACY_STORAGE_KEY = 'vex-fretboard:code';
 
@@ -37,6 +37,8 @@ export class Library extends EventTarget {
   private snippetMap = new Map<string, Snippet>();
   private folderMap = new Map<string, Folder>();
   private tombstoneMap = new Map<string, Tombstone>();
+  // Images are only read when shown, so just their names are kept here.
+  private assetNameSet = new Set<string>();
 
   async init(): Promise<void> {
     this.db = await openLibraryDB();
@@ -44,6 +46,7 @@ export class Library extends EventTarget {
     for (const s of await this.db.getAll('snippets')) this.snippetMap.set(s.id, { ...s, type: s.type ?? 'fretboard' });
     for (const f of await this.db.getAll('folders')) this.folderMap.set(f.id, f);
     for (const t of await this.db.getAll('tombstones')) this.tombstoneMap.set(t.id, t);
+    for (const name of await this.db.getAllKeys('assets')) this.assetNameSet.add(name);
     await this.migrateLegacy();
   }
 
@@ -126,6 +129,14 @@ export class Library extends EventTarget {
         s.name.toLowerCase().includes(query) ||
         s.tags.some((t) => t.includes(query)) ||
         s.code.toLowerCase().includes(query)));
+  }
+
+  // The snippet a `[[name]]` link points to: names match ignoring case, and a
+  // snippet in `folderId` wins over others, then the most recently edited.
+  findByName(name: string, folderId: string | null = null): Snippet | undefined {
+    const wanted = name.trim().replace(/\.(md|fret)$/i, '').toLowerCase();
+    const matches = this.recentSnippets().filter((s) => s.name.toLowerCase() === wanted);
+    return matches.find((s) => s.folderId === folderId) ?? matches[0];
   }
 
   tagCounts(): [string, number][] {
@@ -280,6 +291,34 @@ export class Library extends EventTarget {
     this.folderMap.set(folder.id, folder);
     void this.db.put('folders', folder);
     this.emit(source);
+  }
+
+  // --- Assets ---
+
+  assetNames(): string[] {
+    return [...this.assetNameSet];
+  }
+
+  hasAsset(name: string): boolean {
+    return this.assetNameSet.has(name);
+  }
+
+  getAsset(name: string): Promise<Asset | undefined> {
+    return this.db.get('assets', name);
+  }
+
+  async putAsset(asset: Asset, source: ChangeSource = 'local'): Promise<void> {
+    await this.db.put('assets', asset);
+    this.assetNameSet.add(asset.name);
+    this.emit(source);
+  }
+
+  // A file name for a new image that no other asset uses.
+  newAssetName(base: string, ext: string): string {
+    const taken = (n: string) => this.assetNames().some((a) => a.toLowerCase() === n.toLowerCase());
+    let name = `${base}.${ext}`;
+    for (let n = 2; taken(name); n++) name = `${base} (${n}).${ext}`;
+    return name;
   }
 
   // --- Tombstones & metadata ---

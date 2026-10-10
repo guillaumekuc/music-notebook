@@ -5,10 +5,12 @@ A single-page app for taking quick musical notes. Each snippet is one of:
 - **Fretboard:** a guitar or bass fretboard diagram, written in a small text
   language and rendered with a TypeScript port of
   [0xfe/fretboard](https://github.com/0xfe/fretboard).
+- **Notation:** standard music notation, rendered with
+  [VexFlow](https://www.vexflow.com) (see [Notation syntax](#notation-syntax)).
 - **Markdown note:** plain notes in Markdown (GitHub flavour: tables, task lists,
   strikethrough). A single line break is kept as a line break.
 
-Create either kind with the buttons at the top of the library.
+Create each kind with the buttons at the top of the library.
 
 Markdown notes have a few music-notebook extras:
 
@@ -16,6 +18,11 @@ Markdown notes have a few music-notebook extras:
 ```fretboard                  a fretboard diagram inside the note,
 option frets=5                written in the fretboard syntax
 show fret=3 string=6 text=G
+```
+
+```notation                   music notation inside the note
+key D
+voice D5/q, C#5, B4, A4
 ```
 
 | Dm7 | G7 | Cmaj7 % |        a chord chart: one bar per cell
@@ -38,6 +45,8 @@ show fret=3 string=6 text=G
   good render stays on screen (dimmed) and the error shows with its line number.
 - **Save PNG** exports at 1×–4× scale, on white or a transparent background
   (shortcut: Ctrl/Cmd+Shift+S). **Save SVG** exports vector output.
+- **Save PNG** and **Save SVG** work for notation too; the SVG embeds the music
+  font, so it displays correctly anywhere.
 - **Save .md** downloads a Markdown note as a file.
 - **Copy share link** puts the code in the URL. Opening such a link shows it as a
   draft that you can save to your library. Shared Markdown is sanitised before
@@ -61,7 +70,7 @@ storage, so the app works offline and needs no server or account.
   Search and filter results show a thumbnail of each snippet.
 - **Use on several devices (Chrome/Edge):** click **Connect folder…** and pick a
   folder inside Dropbox, OneDrive, iCloud Drive or a git repo. The library is
-  mirrored there as real directories, `.fret` files and `.md` files:
+  mirrored there as real directories, `.fret`, `.notation` and `.md` files:
 
   ```
   Chords/
@@ -71,8 +80,8 @@ storage, so the app works offline and needs no server or account.
     Practice log.md
   ```
 
-  Each `.fret` file starts with an `# id / # name / # tags` header. These are
-  comments in the fretboard syntax, so every file is still valid fretboard code.
+  Each `.fret` and `.notation` file starts with an `# id / # name / # tags`
+  header. These are comments in both syntaxes, so every file is still valid code.
   Each `.md` file holds the same fields as YAML front matter; other front matter
   keys (from Obsidian, say) are kept. Any `.md` file in the folder becomes a
   note, so existing Markdown notes can be dropped in. Images live in an
@@ -91,7 +100,35 @@ Code: `src/storage/` (library, IndexedDB, folder sync, backup), `src/markdown.ts
 (Markdown rendering and its extensions) and `src/ui/` (sidebar, snippet header,
 note view, Markdown editor keys).
 
-## Syntax
+## Notation syntax
+
+A thin layer over VexFlow's [EasyScore](https://github.com/vexflow/vexflow/wiki)
+note syntax:
+
+```
+clef treble                    treble, bass, alto, tenor, percussion
+key G                          key signature: C, G, D, F, Bb, F#, Am, Em, ...
+time 4/4                       time signature (C for common time)
+width 700                      width in px; measures wrap onto new lines
+voice G4/q, A4, B4, C5 | D5/8, E5, F#5, G5, D5/h | (G4 B4 D5)/1
+voice G3/h, D4 | B3/1 | G3/1   a second voice
+```
+
+- `|` separates measures. A voice line may be shorter than another; its missing
+  measures are empty.
+- Notes: `C#4`, `Bb4`, `Fn4` (natural); durations `/w /h /q /8 /16` carry over
+  to the next note until changed; `C4/q.` is dotted; `(C4 E4 G4)/h` is a chord;
+  `B4/q/r` is a rest.
+- Write notes as they sound: the key signature decides which accidentals are
+  drawn, and accidentals carry through the measure.
+- Eighths and shorter are beamed automatically. With two voices, the first has
+  stems up and the second stems down.
+- Lines starting with `#` are comments.
+
+Code: `src/notation/`. The music fonts (Bravura and Academico, SIL OFL) are
+bundled, so notation works offline.
+
+## Fretboard syntax
 
 ```
 fretboard                         # optional header, ignored

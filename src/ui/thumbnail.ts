@@ -1,4 +1,5 @@
 import { FretboardDiv } from '../fretboard';
+import { renderNotation } from '../notation';
 import { hashString } from '../util';
 
 const cache = new Map<string, string | null>();
@@ -20,4 +21,23 @@ export function thumbnail(code: string): string | null {
   if (cache.size > 300) cache.clear();
   cache.set(key, url);
   return url;
+}
+
+const notationCache = new Map<string, SVGSVGElement | null>();
+
+// Notation thumbnails stay SVG (an image couldn't use the page's music font);
+// callers get their own copy.
+export function notationThumbnail(code: string): SVGSVGElement | null {
+  const key = hashString(code);
+  if (!notationCache.has(key)) {
+    let svg: SVGSVGElement | null = null;
+    try {
+      svg = renderNotation(code).svg;
+    } catch {
+      svg = null;
+    }
+    if (notationCache.size > 300) notationCache.clear();
+    notationCache.set(key, svg);
+  }
+  return (notationCache.get(key)?.cloneNode(true) as SVGSVGElement | undefined) ?? null;
 }

@@ -1,5 +1,8 @@
+import type { SnippetType } from './storage/types';
+
 export interface Example {
   name: string;
+  type?: SnippetType;
   code: string;
 }
 
@@ -65,5 +68,30 @@ show note=0/4 text=E fill-color=#c0392b`,
 option frets=24
 option width=900
 option height=170`,
+  },
+  {
+    name: 'Notation: melody in G',
+    type: 'notation',
+    code: `# Notes are written as they sound; the key decides the accidentals.
+clef treble
+key G
+time 4/4
+voice G4/q, A4, B4, C5 | D5/8, E5, F#5, G5, D5/h | (G4 B4 D5)/1`,
+  },
+  {
+    name: 'Notation: two voices',
+    type: 'notation',
+    code: `clef treble
+time 3/4
+voice E5/q, D5, C5 | B4/h. | C5/8, D5, E5/q, C5 | A4/h.
+voice C4/h, E4/q | G3/h. | A3/h, A3/q | A3/h.`,
+  },
+  {
+    name: 'Notation: bass line',
+    type: 'notation',
+    code: `clef bass
+key F
+time 4/4
+voice F2/q, A2, C3, A2 | Bb2/q, D3, F3, D3 | C3/q, E3, G3, B2 | F2/1`,
   },
 ];

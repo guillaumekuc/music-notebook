@@ -58,18 +58,24 @@ interface WikiLinkToken {
 
 // --- Renderer ---
 
-// Code of the ```fretboard blocks in the note being rendered; the note view
-// draws them into the placeholders.
-let fretboardBlocks: string[] = [];
+// ```fretboard and ```notation blocks in the note being rendered; the note
+// view draws them into the placeholders.
+export type MusicBlockKind = 'fretboard' | 'notation';
+export interface MusicBlock {
+  kind: MusicBlockKind;
+  code: string;
+}
+let musicBlocks: MusicBlock[] = [];
 
 const marked = new Marked({
   gfm: true,
   breaks: true,
   renderer: {
     code({ text, lang }: Tokens.Code) {
-      if (lang?.trim().toLowerCase() !== 'fretboard') return false;
-      fretboardBlocks.push(text);
-      return `<div class="fretboard-block" data-block="${fretboardBlocks.length - 1}"></div>\n`;
+      const kind = lang?.trim().toLowerCase();
+      if (kind !== 'fretboard' && kind !== 'notation') return false;
+      musicBlocks.push({ kind, code: text });
+      return `<div class="music-block" data-block="${musicBlocks.length - 1}"></div>\n`;
     },
     checkbox({ checked }: Tokens.Checkbox) {
       return `<input type="checkbox" class="task"${checked ? ' checked' : ''}> `;
@@ -116,15 +122,15 @@ const marked = new Marked({
 
 export interface RenderedNote {
   html: string;
-  fretboards: string[];
+  blocks: MusicBlock[];
 }
 
 // Renders a Markdown note to sanitised HTML. Notes can arrive through share
 // links, so the HTML is never trusted. Front matter is metadata, not content.
 export function renderMarkdown(text: string): RenderedNote {
-  fretboardBlocks = [];
+  musicBlocks = [];
   const html = marked.parse(text.replace(FRONT_MATTER, ''), { async: false });
-  return { html: DOMPurify.sanitize(html), fretboards: fretboardBlocks };
+  return { html: DOMPurify.sanitize(html), blocks: musicBlocks };
 }
 
 // Ticks or unticks the index-th task list item, counting the way the

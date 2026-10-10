@@ -6,6 +6,7 @@ import { Library, type SnippetInit } from './storage/library';
 import { FolderSync, sanitizeName } from './storage/folderSync';
 import type { SnippetType } from './storage/types';
 import { setTask, wordCount } from './markdown';
+import { loadNotationFonts, renderNotation, standaloneSvg } from './notation';
 import { NoteView } from './ui/noteView';
 import { attachMarkdownEditor } from './ui/markdownEditor';
 import { Sidebar } from './ui/sidebar';
@@ -18,9 +19,16 @@ const RENDER_DELAY_MS = 200;
 const NEW_SNIPPET_CODE: Record<SnippetType, string> = {
   fretboard: 'fretboard\noption frets=12\n',
   markdown: '',
+  notation: 'clef treble\ntime 4/4\nvoice C5/q, B4, A4, G4 | E4/h, C4\n',
 };
 // Share links carry the code in the hash, with a prefix per type.
-const SHARE_PREFIX: Record<SnippetType, string> = { fretboard: 'code', markdown: 'md' };
+const SHARE_PREFIX: Record<SnippetType, string> = { fretboard: 'code', markdown: 'md', notation: 'notation' };
+const CODE_LABEL: Record<SnippetType, string> = { fretboard: 'Fretboard code', markdown: 'Markdown', notation: 'Notation code' };
+const DRAFT_NAME: Record<SnippetType, string> = {
+  fretboard: 'Shared snippet',
+  markdown: 'Shared note',
+  notation: 'Shared notation',
+};
 const NOTE_VIEW_KEY = 'music-notebook:note-view';
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 
@@ -30,7 +38,7 @@ app.innerHTML = `
     <button type="button" id="library-toggle" class="btn only-narrow" aria-label="Open library">${icons.library} Library</button>
     <div>
       <h1>Music Notebook</h1>
-      <p>Quick musical notes: fretboard diagrams and Markdown, rendered as you type.</p>
+      <p>Quick musical notes: fretboard diagrams, notation and Markdown, rendered as you type.</p>
     </div>
   </header>
 
@@ -42,7 +50,7 @@ app.innerHTML = `
       <section class="panel" aria-labelledby="preview-title">
         <div class="panel-head">
           <h2 id="preview-title">Preview</h2>
-          <div class="actions" data-for="fretboard">
+          <div class="actions" data-for="fretboard notation">
             <label class="field">Scale
               <select id="scale">
                 <option value="1">1×</option>
@@ -66,7 +74,7 @@ app.innerHTML = `
             <button type="button" id="save-md" class="btn">Save .md</button>
           </div>
         </div>
-        <div class="stage" id="stage" data-for="fretboard"></div>
+        <div class="stage" id="stage" data-for="fretboard notation"></div>
         <div class="note" id="note" data-for="markdown"></div>
         <p class="status" id="status" role="status" aria-live="polite"></p>
       </section>
@@ -106,6 +114,26 @@ show ... color=red fill-color=white outline and fill colour</pre>
               Lines starting with <code>#</code> are comments.</p>
           </div>
         </details>
+        <details class="reference" data-for="notation">
+          <summary>Notation reference</summary>
+          <div class="reference-body">
+            <h3>Settings</h3>
+            <pre>clef treble        treble, bass, alto, tenor, percussion
+key G              key signature: C, G, D, F, Bb, F#, Am, Em, …
+time 3/4           time signature (C for common time)
+width 700          width in px; measures wrap onto new lines</pre>
+            <h3>Voices</h3>
+            <pre>voice C5/q, B4, A4, G4 | E4/h, C4      | separates measures
+voice C4/h, G3 | C3/1                   a second voice
+C#4  Bb4  Fn4       sharp, flat, natural
+/w /h /q /8 /16     whole … sixteenth (kept until changed)
+C4/q.               dotted
+(C4 E4 G4)/h        chord
+B4/q/r              rest</pre>
+            <p>Write notes as they sound: the key signature decides which accidentals are shown.
+              Eighths and shorter are beamed automatically. Lines starting with <code>#</code> are comments.</p>
+          </div>
+        </details>
         <details class="reference" data-for="markdown">
           <summary>Markdown reference</summary>
           <div class="reference-body">
@@ -123,6 +151,9 @@ show ... color=red fill-color=white outline and fill colour</pre>
 show notes=5/6,7/6     fretboard syntax
 \`\`\`
 | Dm7 | G7 | Cmaj7 % |  a chord chart (one bar per cell)
+\`\`\`notation            music notation, in the
+voice C5/q, B4, A4, G4 notation syntax
+\`\`\`
 [[G major]]             link to a snippet by name
 [[G major|the shape]]   … with your own label</pre>
             <p>A single line break is kept as a line break. Paste or drop an image to add it.
@@ -136,6 +167,7 @@ show notes=5/6,7/6     fretboard syntax
   <footer class="app-footer">
     Based on <a href="https://github.com/0xfe/fretboard" target="_blank" rel="noopener">0xfe/fretboard</a>
     by Mohit Muthanna Cheppudira (MIT), rendered with Paper.js.
+    Notation by <a href="https://www.vexflow.com" target="_blank" rel="noopener">VexFlow</a> (MIT).
   </footer>
 `;
 
@@ -172,7 +204,9 @@ let currentType: SnippetType = 'fretboard';
 let draftName = 'Shared snippet';
 let pendingSave = false;
 
+// What the preview shows: a fretboard, or a notation drawing.
 let current: FretboardDiv | null = null;
+let currentNotation: SVGSVGElement | null = null;
 let currentSize = { width: 0, height: 0 };
 let renderTimer: number | undefined;
 
@@ -187,35 +221,52 @@ function setType(type: SnippetType) {
   currentType = type;
   app.dataset.type = type;
   codeInput.spellcheck = type === 'markdown';
-  codeInput.setAttribute('aria-label', type === 'markdown' ? 'Markdown' : 'Fretboard code');
-  if (type === 'markdown') {
-    current?.destroy();
-    current = null;
-    stage.replaceChildren();
-    setButtonsEnabled(false);
-  } else {
-    note.replaceChildren();
-  }
+  codeInput.setAttribute('aria-label', CODE_LABEL[type]);
+  current?.destroy();
+  current = null;
+  currentNotation = null;
+  stage.replaceChildren();
+  note.replaceChildren();
+  setButtonsEnabled(false);
 }
 
 function render() {
   if (currentType === 'markdown') return renderNote();
+  if (currentType === 'notation') return renderScore();
   const next = new FretboardDiv();
   try {
     const canvas = next.build(codeInput.value);
     current?.destroy();
     current = next;
-    currentSize = { width: Number(next.options.width), height: Number(next.options.height) };
-    stage.replaceChildren(canvas);
-    stage.classList.remove('stale');
-    setButtonsEnabled(true);
-    setStatus(`Rendered · ${currentSize.width} × ${currentSize.height}px`);
+    showDrawing(canvas, Number(next.options.width), Number(next.options.height));
   } catch (e) {
     next.destroy();
-    // Keep the last good render visible, dimmed, so typing isn't jarring.
-    stage.classList.toggle('stale', current !== null);
-    setStatus(e instanceof Error ? e.message : String(e), 'error');
+    showRenderError(e, current !== null);
   }
+}
+
+function renderScore() {
+  try {
+    const { svg, width, height } = renderNotation(codeInput.value);
+    currentNotation = svg;
+    showDrawing(svg, width, height);
+  } catch (e) {
+    showRenderError(e, currentNotation !== null);
+  }
+}
+
+function showDrawing(el: Element, width: number, height: number) {
+  currentSize = { width, height };
+  stage.replaceChildren(el);
+  stage.classList.remove('stale');
+  setButtonsEnabled(true);
+  setStatus(`Rendered · ${width} × ${height}px`);
+}
+
+// Keeps the last good render visible, dimmed, so typing isn't jarring.
+function showRenderError(e: unknown, hasPrevious: boolean) {
+  stage.classList.toggle('stale', hasPrevious);
+  setStatus(e instanceof Error ? e.message : String(e), 'error');
 }
 
 function renderNote() {
@@ -266,7 +317,7 @@ function openSnippet(id: string) {
 function openDraft({ code, type }: SharedCode) {
   flushSave();
   currentId = null;
-  draftName = type === 'markdown' ? 'Shared note' : 'Shared snippet';
+  draftName = DRAFT_NAME[type];
   setType(type);
   codeInput.value = code;
   render();
@@ -401,10 +452,11 @@ interface SharedCode {
 }
 
 function sharedFromHash(): SharedCode | null {
-  const m = location.hash.match(/^#(code|md)=(.*)$/);
+  const m = location.hash.match(/^#(code|md|notation)=(.*)$/);
   const code = m ? decodeCode(m[2]) : null;
   if (code == null) return null;
-  return { code, type: m![1] === 'md' ? 'markdown' : 'fretboard' };
+  const type = (Object.keys(SHARE_PREFIX) as SnippetType[]).find((t) => SHARE_PREFIX[t] === m![1])!;
+  return { code, type };
 }
 
 function encodeCode(code: string): string {
@@ -431,6 +483,7 @@ function exportName(ext: string): string {
 }
 
 function currentSvg(): string | null {
+  if (currentType === 'notation') return currentNotation ? standaloneSvg(currentNotation) : null;
   if (!current?.scope) return null;
   return current.scope.project.exportSVG({ asString: true, bounds: 'view' }) as string;
 }
@@ -507,7 +560,7 @@ function wireEditor() {
     const example = EXAMPLES[Number(examplesSelect.value)];
     examplesSelect.value = '';
     if (!example) return;
-    newSnippet(sidebar.selectedFolderId, { name: example.name, code: example.code });
+    newSnippet(sidebar.selectedFolderId, { name: example.name, type: example.type, code: example.code });
     codeInput.focus();
   });
 
@@ -534,7 +587,7 @@ function wireEditor() {
     if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 's') return;
     e.preventDefault();
     if (e.shiftKey) {
-      if (currentType === 'fretboard' && !savePngButton.disabled) void savePng();
+      if (currentType !== 'markdown' && !savePngButton.disabled) void savePng();
     } else if (currentId) {
       flushSave();
       toast('Saved');
@@ -579,6 +632,8 @@ async function start() {
   }
   setNoteView(view);
   setButtonsEnabled(false);
+  // Notation is measured with its music font, so that loads first.
+  await loadNotationFonts().catch((e) => console.error('Could not load notation fonts', e));
   try {
     await library.init();
   } catch (e) {

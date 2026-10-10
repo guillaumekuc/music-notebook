@@ -305,7 +305,7 @@
   overflow: hidden;
 }
 
-.thumb img {
+.thumb :is(img, svg) {
   display: block;
   width: 100%;
   height: 100%;

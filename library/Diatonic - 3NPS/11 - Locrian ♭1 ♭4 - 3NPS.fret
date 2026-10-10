@@ -1,0 +1,19 @@
+# id: 79d40b99-e313-4cb9-a9e2-42e6d80d4c41
+# name: 11 - Locrian ♭1 ♭4 - 3NPS
+# tags: 3nps, rootless
+# all-fourths tuning
+
+# Mode = scale measured against note. Chromatic scale = 12 notes > 12 notes to measure from > 12 modes for any scale. Some modes do not contain a root note. This one is such a rootless mode.
+
+option start=1
+option frets=12
+option strings=7
+show frets=2,4,6 strings=1
+show frets=2,4,5 strings=2
+show frets=2,4,5 strings=3
+show frets=2,3,5 strings=4
+show frets=2,3,5 strings=5
+show frets=1,3,5 strings=6
+show frets=1,3,5 strings=7
+
+show notes=2/7,4/5,6/3,8/1 text="R" color=red fill-color=white

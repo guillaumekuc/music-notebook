@@ -1,0 +1,19 @@
+# id: 91ed49b9-8ed8-4e4d-8421-05c3275d5f49
+# name: Minor 7 - 2/1 NPS
+# tags: 2/1nps
+# all-fourths tuning
+option height=200
+
+option start=1
+option frets=12
+option strings=9
+show frets=2,5 strings=1
+show frets=5 strings=2
+show frets=3,7 strings=3
+show frets=5 strings=4
+show frets=5,8 strings=5
+show frets=6 strings=6
+show frets=6,8 strings=7
+show frets=8 strings=8
+show frets=6,9 strings=9
+show notes=6/9,8/7,5/4,2/1 text="R" fill-color=red

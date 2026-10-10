@@ -1,0 +1,18 @@
+# id: b0cf5eae-d6b4-4e03-b6b3-b49ceb1eb655
+# name: 4 - Ionian - 3NPS
+# tags: 3nps
+# all-fourths tuning
+
+option start=1
+option frets=12
+option strings=7
+show frets=3,5,7 strings=1
+show frets=3,5,6 strings=2
+show frets=3,5,6 strings=3
+show frets=3,4,6 strings=4
+show frets=2,4,6 strings=7
+show frets=2,4,6 strings=6
+show frets=3,4,6 strings=5
+
+show notes=2/7,4/5,6/3 text="R" fill-color=red
+show notes=8/1 text="R" color=red fill-color=white

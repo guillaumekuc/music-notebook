@@ -1,0 +1,17 @@
+# id: e71bbb3d-c9e7-4e35-b4eb-00ba1eb0d43f
+# name: 9 - Locrian - 3NPS
+# tags: 3nps
+# all-fourths tuning
+
+option start=1
+option frets=12
+option strings=7
+show frets=2,4,6 strings=1
+show frets=2,4,6 strings=2
+show frets=2,4,6 strings=3
+show frets=2,4,5 strings=4
+show frets=2,4,5 strings=5
+show frets=2,3,5 strings=6
+show frets=2,3,5 strings=7
+show notes=2/7,4/5,6/3 text="R" fill-color=red
+show notes=8/1 text="R" color=red fill-color=white

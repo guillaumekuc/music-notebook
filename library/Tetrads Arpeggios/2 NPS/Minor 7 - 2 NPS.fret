@@ -1,0 +1,15 @@
+# id: bb285e01-575b-4ce7-9a9a-e571f3f9a5da
+# name: Minor 7 - 2 NPS
+# tags: 2nps
+# all-fourths tuning
+
+# 2 shapes, 2 adjacent strings each repeat in octaves
+
+option start=1
+option frets=12
+option strings=4
+show frets=2,6 strings=1
+show frets=2,4 strings=2
+show frets=4,7 strings=3
+show frets=2,5 strings=4
+show notes=2/4,4/2 text="R" fill-color=red

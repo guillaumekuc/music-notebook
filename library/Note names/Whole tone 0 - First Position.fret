@@ -1,0 +1,11 @@
+# id: ded9b73d-0521-4336-869b-37e2e54d2980
+# name: Whole tone 0 - First Position
+fretboard
+option frets=12
+
+show notes=0/6,2/4,4/2 text="C" fill-color=white color=red
+show notes=2/6,4/4,1/1 text="D" 
+show notes=4/6,3/1,1/3 text="E" fill-color=333
+show notes=1/5,3/3,5/1 text="Gb"
+show notes=3/5,5/3,0/2 text="Ab" fill-color=333
+show notes=5/5,0/4,2/2 text="Bb"

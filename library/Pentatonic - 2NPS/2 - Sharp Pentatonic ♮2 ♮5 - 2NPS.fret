@@ -1,0 +1,23 @@
+# id: 6e67c93a-2f13-4bc7-9ed7-65cb418fd928
+# name: 2 - Sharp Pentatonic  ♮2  ♮5 - 2NPS
+# tags: 2nps, pentatonic, rootless
+# all-fourths tuning
+
+
+
+# Intervals : 2, 3, 5, 6, 7
+# Intervals : ♭1, 2, 3, 5, 6 (favored spelling)
+
+# = Major pentatonic ♭1
+
+option start=1
+option frets=12
+option strings=6
+
+show frets=2,5 strings=1
+show frets=3,5 strings=2
+show frets=3,5 strings=3
+show frets=3,5 strings=4
+show frets=3,6 strings=5
+show frets=3,6 strings=6
+show notes=4/6,6/4,3/1 text="R" color=red fill-color=white

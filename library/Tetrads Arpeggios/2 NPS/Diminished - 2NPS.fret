@@ -1,0 +1,15 @@
+# id: 1a1ef5ca-621c-4357-a484-703f4d701ecc
+# name: Diminished - 2NPS
+# tags: 2nps
+# all-fourths tuning
+
+# 2 shapes, 2 adjacent strings each repeat in octaves
+
+option start=1
+option frets=12
+option strings=4
+show frets=2,5 strings=1
+show frets=2,4 strings=2
+show frets=3,7 strings=3
+show frets=2,5 strings=4
+show notes=2/4,4/2 text="R" fill-color=red

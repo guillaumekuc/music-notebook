@@ -1,0 +1,19 @@
+# id: 5d112c72-865c-4647-aac4-02abf98beb03
+# name: 11 - Flat Pentatonic ♮7 ♮3 - 2NPS
+# tags: 2nps, pentatonic, rootless
+# all-fourths tuning
+
+# Intervals : ♭2, 3, ♭5, ♭6, 7
+
+
+option start=1
+option frets=12
+option strings=6
+
+show frets=4,7 strings=1
+show frets=4,7 strings=2
+show frets=5,7 strings=3
+show frets=5,7 strings=4
+show frets=5,7 strings=5
+show frets=5,8 strings=6
+show notes=4/6,6/4,3/1 text="R" color=red fill-color=white

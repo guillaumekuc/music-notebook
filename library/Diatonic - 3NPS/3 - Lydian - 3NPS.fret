@@ -1,0 +1,20 @@
+# id: 701dcf76-dc6e-49a8-bf27-b77a6e4abdd2
+# name: 3 - Lydian - 3NPS
+# tags: 3nps
+# all-fourths tuning
+
+# = Ionian ♯4
+
+option strings=7
+option start=1
+option frets=12
+show frets=3,5,7 strings=1
+show frets=3,5,7 strings=2
+show frets=3,5,6 strings=3
+show frets=3,5,6 strings=4
+show frets=3,4,6 strings=5
+show frets=3,4,6 strings=6
+show frets=2,4,6 strings=7
+
+show notes=2/7,4/5,6/3 text="R" fill-color=red
+show notes=8/1 text="R" color=red fill-color=white

@@ -9,3 +9,6 @@ Thumbs.db
 !.vscode/extensions.json
 .idea
 .claude/settings.local.json
+
+# Snippet library content: its own git repo (see library/.git)
+library/

@@ -1,7 +1,0 @@
-# id: 13e28a86-7860-4868-9f82-c85c2e363cf9
-# name: C & F
-fretboard
-option frets=12
-
-show notes=0/5,12/5,7/4,2/3,9/2,4/1 text="F" color=red fill-color=white
-show notes=0/6,12/6,7/5,2/4,9/3,4/2,11/1 text="C" color=red fill-color=white

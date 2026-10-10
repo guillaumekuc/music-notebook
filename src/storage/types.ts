@@ -9,9 +9,12 @@ export interface Folder {
   syncedAt?: number;
 }
 
+export type SnippetType = 'fretboard' | 'markdown';
+
 export interface Snippet {
   id: string;
   name: string;
+  type: SnippetType;
   folderId: string | null;
   tags: string[];
   code: string;

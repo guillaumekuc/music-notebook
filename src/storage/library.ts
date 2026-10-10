@@ -18,7 +18,7 @@ export interface SnippetFilter {
   tags?: string[];
 }
 
-export type SnippetInit = Partial<Pick<Snippet, 'name' | 'folderId' | 'tags' | 'code'>>;
+export type SnippetInit = Partial<Pick<Snippet, 'name' | 'type' | 'folderId' | 'tags' | 'code'>>;
 
 export function normalizeTags(tags: string[]): string[] {
   const seen = new Set<string>();
@@ -40,7 +40,8 @@ export class Library extends EventTarget {
 
   async init(): Promise<void> {
     this.db = await openLibraryDB();
-    for (const s of await this.db.getAll('snippets')) this.snippetMap.set(s.id, s);
+    // Snippets saved before Markdown notes existed have no type.
+    for (const s of await this.db.getAll('snippets')) this.snippetMap.set(s.id, { ...s, type: s.type ?? 'fretboard' });
     for (const f of await this.db.getAll('folders')) this.folderMap.set(f.id, f);
     for (const t of await this.db.getAll('tombstones')) this.tombstoneMap.set(t.id, t);
     await this.migrateLegacy();
@@ -152,6 +153,7 @@ export class Library extends EventTarget {
     const snippet: Snippet = {
       id,
       name: init.name?.trim() || 'Untitled',
+      type: init.type ?? 'fretboard',
       folderId: init.folderId ?? null,
       tags: normalizeTags(init.tags ?? []),
       code: init.code ?? '',
@@ -175,7 +177,7 @@ export class Library extends EventTarget {
   duplicateSnippet(id: string): Snippet | undefined {
     const s = this.snippetMap.get(id);
     if (!s) return undefined;
-    return this.createSnippet({ name: `${s.name} copy`, folderId: s.folderId, tags: s.tags, code: s.code });
+    return this.createSnippet({ name: `${s.name} copy`, type: s.type, folderId: s.folderId, tags: s.tags, code: s.code });
   }
 
   deleteSnippet(id: string, source: ChangeSource = 'local'): Snippet | undefined {

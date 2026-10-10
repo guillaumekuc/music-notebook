@@ -4,6 +4,8 @@ import { FretboardDiv } from './fretboard';
 import { EXAMPLES } from './examples';
 import { Library, type SnippetInit } from './storage/library';
 import { FolderSync, sanitizeName } from './storage/folderSync';
+import type { SnippetType } from './storage/types';
+import { renderMarkdown, wordCount } from './markdown';
 import { Sidebar } from './ui/sidebar';
 import { SnippetMeta } from './ui/snippetMeta';
 import { icons } from './ui/icons';
@@ -11,7 +13,12 @@ import { toast } from './ui/toast';
 import { download } from './util';
 
 const RENDER_DELAY_MS = 200;
-const NEW_SNIPPET_CODE = 'fretboard\noption frets=12\n';
+const NEW_SNIPPET_CODE: Record<SnippetType, string> = {
+  fretboard: 'fretboard\noption frets=12\n',
+  markdown: '',
+};
+// Share links carry the code in the hash, with a prefix per type.
+const SHARE_PREFIX: Record<SnippetType, string> = { fretboard: 'code', markdown: 'md' };
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML = `
@@ -19,7 +26,7 @@ app.innerHTML = `
     <button type="button" id="library-toggle" class="btn only-narrow" aria-label="Open library">${icons.library} Library</button>
     <div>
       <h1>Music Notebook</h1>
-      <p>Describe a fretboard in text and it renders as you type.</p>
+      <p>Quick musical notes: fretboard diagrams and Markdown, rendered as you type.</p>
     </div>
   </header>
 
@@ -31,7 +38,7 @@ app.innerHTML = `
       <section class="panel" aria-labelledby="preview-title">
         <div class="panel-head">
           <h2 id="preview-title">Preview</h2>
-          <div class="actions">
+          <div class="actions" data-for="fretboard">
             <label class="field">Scale
               <select id="scale">
                 <option value="1">1×</option>
@@ -44,15 +51,19 @@ app.innerHTML = `
             <button type="button" id="save-svg" class="btn">Save SVG</button>
             <button type="button" id="save-png" class="btn btn-primary" title="Ctrl+Shift+S">Save PNG</button>
           </div>
+          <div class="actions" data-for="markdown">
+            <button type="button" id="save-md" class="btn">Save .md</button>
+          </div>
         </div>
-        <div class="stage" id="stage"></div>
+        <div class="stage" id="stage" data-for="fretboard"></div>
+        <div class="note" id="note" data-for="markdown"></div>
         <p class="status" id="status" role="status" aria-live="polite"></p>
       </section>
 
       <section class="panel" aria-label="Code">
         <div class="snippet-meta" id="snippet-meta"></div>
         <textarea id="code" class="code" spellcheck="false" autocapitalize="off" autocomplete="off"
-          aria-label="Fretboard code"></textarea>
+          aria-label="Code"></textarea>
         <div class="code-foot">
           <label class="field">
             <select id="examples" aria-label="New snippet from example">
@@ -63,7 +74,7 @@ app.innerHTML = `
           <button type="button" id="copy-link" class="btn btn-small">Copy share link</button>
         </div>
 
-        <details class="reference">
+        <details class="reference" data-for="fretboard">
           <summary>Syntax reference</summary>
           <div class="reference-body">
             <h3>Options</h3>
@@ -84,6 +95,21 @@ show ... color=red fill-color=white outline and fill colour</pre>
               Lines starting with <code>#</code> are comments.</p>
           </div>
         </details>
+        <details class="reference" data-for="markdown">
+          <summary>Markdown reference</summary>
+          <div class="reference-body">
+            <pre># Heading   ## Smaller heading
+**bold**   *italic*   ~~struck~~   \`code\`
+- list item       1. numbered item
+- [ ] to do       - [x] done
+> quote
+[link](https://example.com)
+| Chord | Shape |
+| ----- | ----- |
+| C     | x32010 |</pre>
+            <p>A single line break is kept as a line break.</p>
+          </div>
+        </details>
       </section>
     </main>
   </div>
@@ -96,6 +122,7 @@ show ... color=red fill-color=white outline and fill colour</pre>
 
 const $ = <T extends HTMLElement>(sel: string) => app.querySelector<T>(sel)!;
 const stage = $<HTMLDivElement>('#stage');
+const note = $<HTMLDivElement>('#note');
 const status = $<HTMLParagraphElement>('#status');
 const codeInput = $<HTMLTextAreaElement>('#code');
 const examplesSelect = $<HTMLSelectElement>('#examples');
@@ -104,6 +131,7 @@ const transparentInput = $<HTMLInputElement>('#transparent');
 const savePngButton = $<HTMLButtonElement>('#save-png');
 const saveSvgButton = $<HTMLButtonElement>('#save-svg');
 const copyLinkButton = $<HTMLButtonElement>('#copy-link');
+const saveMdButton = $<HTMLButtonElement>('#save-md');
 
 const library = new Library();
 const sync = new FolderSync(library);
@@ -112,6 +140,7 @@ let meta: SnippetMeta;
 
 // The open snippet: a library snippet (currentId), or a draft from a share link.
 let currentId: string | null = null;
+let currentType: SnippetType = 'fretboard';
 let draftName = 'Shared snippet';
 let pendingSave = false;
 
@@ -124,7 +153,25 @@ function setStatus(message: string, kind: 'ok' | 'error' | 'info' = 'ok') {
   status.dataset.kind = kind;
 }
 
+// Switches the panels (and the editor's spellcheck) to the open snippet's type.
+function setType(type: SnippetType) {
+  if (type === currentType) return;
+  currentType = type;
+  app.dataset.type = type;
+  codeInput.spellcheck = type === 'markdown';
+  codeInput.setAttribute('aria-label', type === 'markdown' ? 'Markdown' : 'Fretboard code');
+  if (type === 'markdown') {
+    current?.destroy();
+    current = null;
+    stage.replaceChildren();
+    setButtonsEnabled(false);
+  } else {
+    note.replaceChildren();
+  }
+}
+
 function render() {
+  if (currentType === 'markdown') return renderNote();
   const next = new FretboardDiv();
   try {
     const canvas = next.build(codeInput.value);
@@ -141,6 +188,12 @@ function render() {
     stage.classList.toggle('stale', current !== null);
     setStatus(e instanceof Error ? e.message : String(e), 'error');
   }
+}
+
+function renderNote() {
+  note.innerHTML = renderMarkdown(codeInput.value);
+  const words = wordCount(codeInput.value);
+  setStatus(`${words} word${words === 1 ? '' : 's'}`, 'info');
 }
 
 function setButtonsEnabled(enabled: boolean) {
@@ -172,6 +225,7 @@ function openSnippet(id: string) {
   if (!s) return;
   flushSave();
   currentId = id;
+  setType(s.type);
   codeInput.value = s.code;
   render();
   meta.show(s);
@@ -181,10 +235,11 @@ function openSnippet(id: string) {
   sidebar.reveal(id);
 }
 
-function openDraft(code: string) {
+function openDraft({ code, type }: SharedCode) {
   flushSave();
   currentId = null;
-  draftName = 'Shared snippet';
+  draftName = type === 'markdown' ? 'Shared note' : 'Shared snippet';
+  setType(type);
   codeInput.value = code;
   render();
   meta.show({ id: null, name: draftName, folderId: null, tags: [] });
@@ -193,7 +248,8 @@ function openDraft(code: string) {
 
 function newSnippet(folderId: string | null, init: SnippetInit = {}) {
   flushSave();
-  const s = library.createSnippet({ name: 'Untitled', code: NEW_SNIPPET_CODE, folderId, ...init });
+  const code = NEW_SNIPPET_CODE[init.type ?? 'fretboard'];
+  const s = library.createSnippet({ name: 'Untitled', code, folderId, ...init });
   openSnippet(s.id);
   return s;
 }
@@ -206,9 +262,8 @@ function openFallback() {
 }
 
 async function openInitial() {
-  const shared = location.hash.match(/^#code=(.*)$/);
-  const sharedCode = shared ? decodeCode(shared[1]) : null;
-  if (sharedCode != null) return openDraft(sharedCode);
+  const shared = sharedFromHash();
+  if (shared) return openDraft(shared);
 
   const linked = location.hash.match(/^#s=(.+)$/)?.[1];
   const lastOpened = await library.getMeta<string>('lastOpened');
@@ -247,8 +302,9 @@ function refreshCurrent() {
       openFallback();
       return;
     }
-    if (!pendingSave && s.code !== codeInput.value) {
+    if (!pendingSave && (s.code !== codeInput.value || s.type !== currentType)) {
       const { selectionStart, selectionEnd } = codeInput;
+      setType(s.type);
       codeInput.value = s.code;
       codeInput.setSelectionRange(selectionStart, selectionEnd);
       render();
@@ -258,6 +314,18 @@ function refreshCurrent() {
 }
 
 // --- Share links ---
+
+interface SharedCode {
+  code: string;
+  type: SnippetType;
+}
+
+function sharedFromHash(): SharedCode | null {
+  const m = location.hash.match(/^#(code|md)=(.*)$/);
+  const code = m ? decodeCode(m[2]) : null;
+  if (code == null) return null;
+  return { code, type: m![1] === 'md' ? 'markdown' : 'fretboard' };
+}
 
 function encodeCode(code: string): string {
   const bytes = new TextEncoder().encode(code);
@@ -279,12 +347,16 @@ function decodeCode(encoded: string): string | null {
 
 function exportName(ext: string): string {
   const name = currentId ? library.getSnippet(currentId)?.name : draftName;
-  return `${sanitizeName(name ?? 'fretboard')}.${ext}`;
+  return `${sanitizeName(name ?? 'Untitled')}.${ext}`;
 }
 
 function currentSvg(): string | null {
   if (!current?.scope) return null;
   return current.scope.project.exportSVG({ asString: true, bounds: 'view' }) as string;
+}
+
+function saveMarkdown() {
+  download(new Blob([codeInput.value], { type: 'text/markdown' }), exportName('md'));
 }
 
 function saveSvg() {
@@ -361,9 +433,10 @@ function wireEditor() {
 
   savePngButton.addEventListener('click', savePng);
   saveSvgButton.addEventListener('click', saveSvg);
+  saveMdButton.addEventListener('click', saveMarkdown);
 
   copyLinkButton.addEventListener('click', async () => {
-    const url = `${location.origin}${location.pathname}#code=${encodeCode(codeInput.value)}`;
+    const url = `${location.origin}${location.pathname}#${SHARE_PREFIX[currentType]}=${encodeCode(codeInput.value)}`;
     try {
       await navigator.clipboard.writeText(url);
       toast('Share link copied');
@@ -379,7 +452,7 @@ function wireEditor() {
     if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 's') return;
     e.preventDefault();
     if (e.shiftKey) {
-      if (!savePngButton.disabled) void savePng();
+      if (currentType === 'fretboard' && !savePngButton.disabled) void savePng();
     } else if (currentId) {
       flushSave();
       toast('Saved');
@@ -389,9 +462,8 @@ function wireEditor() {
   });
 
   window.addEventListener('hashchange', () => {
-    const shared = location.hash.match(/^#code=(.*)$/);
-    const code = shared ? decodeCode(shared[1]) : null;
-    if (code != null) return openDraft(code);
+    const shared = sharedFromHash();
+    if (shared) return openDraft(shared);
     const id = location.hash.match(/^#s=(.+)$/)?.[1];
     if (id && id !== currentId && library.getSnippet(id)) openSnippet(id);
   });
@@ -404,13 +476,19 @@ function wireEditor() {
 
 function saveDraft() {
   if (currentId) return;
-  const s = library.createSnippet({ name: draftName, code: codeInput.value, folderId: sidebar.selectedFolderId });
+  const s = library.createSnippet({
+    name: draftName,
+    type: currentType,
+    code: codeInput.value,
+    folderId: sidebar.selectedFolderId,
+  });
   openSnippet(s.id);
   meta.focusName();
   toast('Saved to library');
 }
 
 async function start() {
+  app.dataset.type = currentType;
   setButtonsEnabled(false);
   try {
     await library.init();
@@ -423,8 +501,8 @@ async function start() {
   sidebar = new Sidebar($('#sidebar'), library, sync, {
     currentId: () => currentId,
     open: openSnippet,
-    newSnippet: (folderId) => {
-      newSnippet(folderId);
+    newSnippet: (folderId, type) => {
+      newSnippet(folderId, { type });
       meta.focusName();
     },
   });
@@ -448,7 +526,7 @@ async function start() {
 
   library.onChange(refreshCurrent);
   wireEditor();
-  if (import.meta.env.DEV) Object.assign(window, { __fretboard: { library, sync } });
+  if (import.meta.env.DEV) Object.assign(window, { __notebook: { library, sync } });
   await openInitial();
   await sync.init();
 }

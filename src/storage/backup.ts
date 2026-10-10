@@ -76,6 +76,7 @@ export async function importLibrary(library: Library, file: File): Promise<Impor
     library.putSnippet({
       id: s.id,
       name: isString(s.name) && s.name.trim() ? s.name : 'Untitled',
+      type: s.type === 'markdown' ? 'markdown' : 'fretboard',
       folderId: isString(s.folderId) && library.getFolder(s.folderId) ? s.folderId : null,
       tags: normalizeTags(Array.isArray(s.tags) ? s.tags.filter(isString) : []),
       code: s.code,

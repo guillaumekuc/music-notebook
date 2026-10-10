@@ -316,6 +316,20 @@
   background: repeating-linear-gradient(45deg, var(--hover) 0 6px, transparent 6px 12px);
 }
 
+/* Markdown notes show the start of their text instead of a drawing. */
+.thumb.text {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--muted);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
 .result-name {
   font-size: 0.88rem;
   font-weight: 500;

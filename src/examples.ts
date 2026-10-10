@@ -87,6 +87,33 @@ voice E5/q, D5, C5 | B4/h. | C5/8, D5, E5/q, C5 | A4/h.
 voice C4/h, E4/q | G3/h. | A3/h, A3/q | A3/h.`,
   },
   {
+    name: 'Notation: lead sheet',
+    type: 'notation',
+    code: `tempo "Moderato" q=96
+key F
+time 3/4
+voice "F"C5/q, A4, F4 | "C7"G4/h, C4/q | "F"F4/h.~ | F4/h. |]
+lyrics Hap- py birth- day`,
+  },
+  {
+    name: 'Notation: guitar tab',
+    type: 'notation',
+    code: `# Tab with the notes worked out in notation above it
+time 4/4
+staff tab notation
+voice 0/6/8, 2/6, 3/5, 0/4, 2/4h, 4/4, 2/3, 0/2 | (0/1 1/2 0/3 2/4 3/5)/h, 7/3/q b, 5/2 v |]`,
+  },
+  {
+    name: 'Notation: piano',
+    type: 'notation',
+    code: `key G
+time 4/4
+staff treble
+voice !p! (G4/q, A4, B4, C5 | D5/h), @G5/h |]
+staff bass
+voice (G2 D3)/1 | (G2 D3 G3)/1 |]`,
+  },
+  {
     name: 'Notation: bass line',
     type: 'notation',
     code: `clef bass

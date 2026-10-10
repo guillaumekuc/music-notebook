@@ -118,20 +118,34 @@ show ... color=red fill-color=white outline and fill colour</pre>
           <summary>Notation reference</summary>
           <div class="reference-body">
             <h3>Settings</h3>
-            <pre>clef treble        treble, bass, alto, tenor, percussion
-key G              key signature: C, G, D, F, Bb, F#, Am, Em, …
-time 3/4           time signature (C for common time)
-width 700          width in px; measures wrap onto new lines</pre>
-            <h3>Voices</h3>
-            <pre>voice C5/q, B4, A4, G4 | E4/h, C4      | separates measures
-voice C4/h, G3 | C3/1                   a second voice
+            <pre>clef treble              treble, bass, alto, tenor, percussion
+key G                    C, G, D, F, Bb, F#, Am, Em, …
+time 3/4                 time signature (C for common time)
+tempo "Allegro" q=132    tempo mark (or just: tempo 120)
+width 700                measures wrap onto lines this wide
+staff bass               start another staff (two make a grand staff)
+staff tab notation       guitar tab, with notation worked out above
+staff tab tuning=dropd   standard, dropd, dadgad, open-g, bass, ukulele, …</pre>
+            <h3>Voices and notes</h3>
+            <pre>voice C5/q, B4, A4, G4 | E4/h, C4     | separates measures
+lyrics Hel- lo there my friend         one word per note; _ skips one
 C#4  Bb4  Fn4       sharp, flat, natural
-/w /h /q /8 /16     whole … sixteenth (kept until changed)
-C4/q.               dotted
-(C4 E4 G4)/h        chord
-B4/q/r              rest</pre>
+/w /h /q /8 /16     durations; they carry on until changed
+C4/q.  (C4 E4 G4)/h  B4/q/r           dotted, chord, rest
+C4/h~, C4/q         tie
+(C4/8, D4, E4)      slur: ( before the first note, ) after the last
+{C5/8, D5, E5}      triplet ({5:4 …} for other ratios)
+.C4 -C4 >C4 ^C4 @C4 staccato, tenuto, accent, marcato, fermata
+"Am7"C4  _"rit."C4  !mf!C4          text above, text below, dynamics
+|| |] |: :| :|:     double, final and repeat bar lines
+[key D] [time 3/4] [clef bass]       changes, at the start of a measure</pre>
+            <h3>Tab notes</h3>
+            <pre>5/3  (0/1 1/2 0/3)/h  x/6  r/q       fret/string, chord, muted, rest
+7/3h, 9/3     hammer-on  ·  p pull-off  ·  s slide
+7/3/q b       bend  ·  v vibrato</pre>
             <p>Write notes as they sound: the key signature decides which accidentals are shown.
-              Eighths and shorter are beamed automatically. Lines starting with <code>#</code> are comments.</p>
+              Short notes are beamed automatically; with two voices the first has stems up.
+              Lines starting with <code>#</code> are comments.</p>
           </div>
         </details>
         <details class="reference" data-for="markdown">

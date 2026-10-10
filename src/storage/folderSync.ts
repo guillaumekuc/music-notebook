@@ -1,13 +1,17 @@
 // Mirrors the library into a user-chosen directory using the File System
 // Access API (Chromium only). Folders become directories and snippets become
-// `<name>.fret` files whose first lines are a `#` comment header holding the
-// snippet id, name and tags - comments in the fretboard syntax, so every file
-// is still valid fretboard code. Put the directory in Dropbox/OneDrive/a git
-// repo and the library follows you to other devices.
+// files holding the snippet id, name and tags in a header:
+// - fretboards are `<name>.fret`, with the header as `#` comments in the
+//   fretboard syntax, so every file is still valid fretboard code;
+// - Markdown notes are `<name>.md`, with the header as YAML front matter, which
+//   Markdown editors and previewers understand.
+// Images pasted into notes go in an `attachments` directory at the top.
+// Put the directory in Dropbox/OneDrive/a git repo and the library follows you
+// to other devices.
 
 import { hashString } from '../util';
 import { normalizeTags, type Library } from './library';
-import type { Folder, Snippet } from './types';
+import { ATTACHMENTS_DIR, type Folder, type Snippet, type SnippetType } from './types';
 
 export type SyncStatus = 'unsupported' | 'disconnected' | 'needs-permission' | 'idle' | 'syncing' | 'error';
 
@@ -22,6 +26,7 @@ interface RemoteFile {
   path: string;
   dir: string[];
   name: string;
+  type: SnippetType;
   file: File;
   // Only read when the file may have changed since the last sync.
   text?: string;
@@ -36,24 +41,44 @@ interface ParsedFile {
 }
 
 const HANDLE_KEY = 'syncHandle';
-const EXT = '.fret';
+const EXT: Record<SnippetType, string> = { fretboard: '.fret', markdown: '.md' };
 const LOCAL_CHANGE_DELAY_MS = 1500;
 const POLL_INTERVAL_MS = 60_000;
 
 const key = (parts: string[]) => parts.join('/');
 const depth = (path: string) => (path ? path.split('/').length : 0);
 const dirOf = (path: string) => path.split('/').slice(0, -1);
-const baseName = (path: string) => path.split('/').pop()!.replace(/\.fret$/i, '');
+const stripExt = (name: string) => name.replace(/\.(fret|md)$/i, '');
+const baseName = (path: string) => stripExt(path.split('/').pop()!);
+
+const IMAGE_TYPES: Record<string, string> = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  avif: 'image/avif',
+};
+const imageType = (name: string) => IMAGE_TYPES[name.split('.').pop()!.toLowerCase()];
+
+function typeOfFile(name: string): SnippetType | null {
+  const lower = name.toLowerCase();
+  if (lower.endsWith(EXT.fretboard)) return 'fretboard';
+  if (lower.endsWith(EXT.markdown)) return 'markdown';
+  return null;
+}
 
 // --- File format ---
 
 export function serializeSnippet(s: Snippet): string {
+  if (s.type === 'markdown') return serializeMarkdown(s);
   const header = [`# id: ${s.id}`, `# name: ${s.name}`];
   if (s.tags.length) header.push(`# tags: ${s.tags.join(', ')}`);
   return header.join('\n') + '\n' + s.code;
 }
 
-export function parseSnippetFile(text: string): ParsedFile {
+export function parseSnippetFile(text: string, type: SnippetType): ParsedFile {
+  if (type === 'markdown') return parseMarkdown(text);
   const lines = text.split(/\r?\n/);
   const meta: Record<string, string> = {};
   let i = 0;
@@ -67,6 +92,45 @@ export function parseSnippetFile(text: string): ParsedFile {
     name: meta.name || undefined,
     tags: meta.tags ? meta.tags.split(',').map((t) => t.trim()).filter(Boolean) : [],
     code: lines.slice(i).join('\n'),
+  };
+}
+
+// Front matter a note already has (e.g. from Obsidian) stays part of its
+// code, and the header keys are merged into it.
+const FRONT_MATTER = /^---\r?\n([\s\S]*?)\r?\n?---[ \t]*(?:\r?\n|$)/;
+const HEADER_KEY = /^(id|name|tags):\s?(.*)$/;
+
+function serializeMarkdown(s: Snippet): string {
+  const header = [`id: ${s.id}`, `name: ${JSON.stringify(s.name)}`];
+  if (s.tags.length) header.push(`tags: [${s.tags.join(', ')}]`);
+  if (!FRONT_MATTER.test(s.code)) return `---\n${header.join('\n')}\n---\n${s.code}`;
+  return `---\n${header.join('\n')}\n${s.code.replace(/^---\r?\n/, '')}`;
+}
+
+function parseMarkdown(text: string): ParsedFile {
+  const m = text.match(FRONT_MATTER);
+  if (!m) return { tags: [], code: text };
+  const meta: Record<string, string> = {};
+  const rest: string[] = [];
+  for (const line of m[1].split(/\r?\n/)) {
+    const h = line.match(HEADER_KEY);
+    if (h && !(h[1] in meta)) meta[h[1]] = h[2].trim();
+    else if (line) rest.push(line);
+  }
+  let name = meta.name;
+  if (name?.startsWith('"')) {
+    try {
+      name = JSON.parse(name);
+    } catch {
+      // keep it as written
+    }
+  }
+  const body = text.slice(m[0].length);
+  return {
+    id: meta.id || undefined,
+    name: name || undefined,
+    tags: meta.tags ? meta.tags.replace(/^\[|\]$/g, '').split(',').map((t) => t.trim()).filter(Boolean) : [],
+    code: rest.length ? `---\n${rest.join('\n')}\n---\n${body}` : body,
   };
 }
 
@@ -88,12 +152,14 @@ export function sanitizeName(name: string): string {
 const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // Picks a unique name within a directory, keeping `previous` if it still fits
-// so files are not renamed back and forth between devices.
-function uniqueName(base: string, taken: Set<string>, previous?: string): string {
+// so files are not renamed back and forth between devices. `taken` holds
+// lowercased names, each including `ext`.
+function uniqueName(base: string, taken: Set<string>, previous?: string, ext = ''): string {
+  const free = (name: string) => !taken.has((name + ext).toLowerCase());
   const fits = new RegExp(`^${escapeRegExp(base)}( \\(\\d+\\))?$`, 'i');
-  if (previous && fits.test(previous) && !taken.has(previous.toLowerCase())) return previous;
+  if (previous && fits.test(previous) && free(previous)) return previous;
   let candidate = base;
-  for (let n = 2; taken.has(candidate.toLowerCase()); n++) candidate = `${base} (${n})`;
+  for (let n = 2; !free(candidate); n++) candidate = `${base} (${n})`;
   return candidate;
 }
 
@@ -268,7 +334,7 @@ export class FolderSync extends EventTarget {
         continue;
       }
       rf.text = await rf.file.text();
-      rf.parsed = parseSnippetFile(rf.text);
+      rf.parsed = parseSnippetFile(rf.text, rf.type);
       const id = rf.parsed.id;
       // A missing id is a hand-made file; a repeated id is a copied file.
       if (id && !fileById.has(id)) fileById.set(id, rf);
@@ -313,6 +379,7 @@ export class FolderSync extends EventTarget {
       const id = keepId && parsed.id ? parsed.id : crypto.randomUUID();
       const created = lib.createSnippet({
         name: nameFromFile(rf, parsed),
+        type: rf.type,
         folderId: ensureFolder(rf.dir),
         tags: parsed.tags,
         code: parsed.code,
@@ -373,6 +440,7 @@ export class FolderSync extends EventTarget {
         lib.putSnippet({
           ...s,
           name: nameFromFile(rf, parsed),
+          type: rf.type,
           folderId: ensureFolder(rf.dir),
           tags: remoteTags,
           code: parsed.code,
@@ -380,12 +448,13 @@ export class FolderSync extends EventTarget {
           syncedAt: now,
           ...bookkeeping,
         }, 'sync');
-      } else if (parsed.code === s.code && remoteTags.join() === s.tags.join()) {
+      } else if (rf.type === s.type && parsed.code === s.code && remoteTags.join() === s.tags.join()) {
         lib.putSnippet({ ...s, syncedAt: s.updatedAt, ...bookkeeping }, 'sync');
       } else {
         // Changed on both sides: keep ours, and the folder's version as a copy.
         lib.createSnippet({
           name: `${nameFromFile(rf, parsed)} (conflict)`,
+          type: rf.type,
           folderId: ensureFolder(rf.dir),
           tags: parsed.tags,
           code: parsed.code,
@@ -454,6 +523,43 @@ export class FolderSync extends EventTarget {
       if (d && !livePaths.has(d)) await removeDirIfEmpty(root, d);
     }
     for (const t of lib.tombstones()) lib.removeTombstone(t.id);
+
+    await this.syncAttachments(root);
+  }
+
+  // Images are only ever added: new ones are copied each way, and a file
+  // deleted from the folder is written again.
+  private async syncAttachments(root: FileSystemDirectoryHandle): Promise<void> {
+    const lib = this.library;
+    let dir: FileSystemDirectoryHandle;
+    try {
+      dir = await root.getDirectoryHandle(ATTACHMENTS_DIR, { create: lib.assetNames().length > 0 });
+    } catch (e) {
+      if ((e as DOMException).name === 'NotFoundError') return;
+      throw e;
+    }
+
+    const remote = new Map<string, FileSystemFileHandle>();
+    for await (const [name, handle] of dir.entries()) {
+      if (handle.kind === 'file' && imageType(name)) remote.set(name.toLowerCase(), handle as FileSystemFileHandle);
+    }
+    const local = new Set(lib.assetNames().map((n) => n.toLowerCase()));
+
+    for (const name of lib.assetNames()) {
+      if (remote.has(name.toLowerCase())) continue;
+      const asset = await lib.getAsset(name);
+      if (!asset) continue;
+      const writable = await (await dir.getFileHandle(name, { create: true })).createWritable();
+      await writable.write(asset.blob);
+      await writable.close();
+    }
+    for (const [lower, handle] of remote) {
+      if (local.has(lower)) continue;
+      const file = await handle.getFile();
+      const type = imageType(handle.name);
+      const blob = new Blob([await file.arrayBuffer()], { type });
+      await lib.putAsset({ name: handle.name, type, blob, createdAt: file.lastModified }, 'sync');
+    }
   }
 
   // Directory path for every folder, keeping existing names stable.
@@ -461,7 +567,8 @@ export class FolderSync extends EventTarget {
     const lib = this.library;
     const paths = new Map<string, string>();
     const visit = (parentId: string | null, parentPath: string) => {
-      const taken = new Set<string>();
+      // The attachments directory is not a folder.
+      const taken = new Set<string>(parentId == null ? [ATTACHMENTS_DIR] : []);
       const children = lib.childFolders(parentId).sort(stableOrder(parentPath));
       for (const f of children) {
         const previous = f.syncedPath && key(dirOf(f.syncedPath)) === parentPath ? baseName(f.syncedPath) : undefined;
@@ -485,9 +592,10 @@ export class FolderSync extends EventTarget {
       const taken = new Set<string>();
       for (const s of lib.snippetsIn(folderId).sort(stableOrder(dirPath))) {
         const previous = s.syncedPath && key(dirOf(s.syncedPath)) === dirPath ? baseName(s.syncedPath) : undefined;
-        const name = uniqueName(sanitizeName(s.name), taken, previous);
-        taken.add(name.toLowerCase());
-        paths.set(s.id, `${dirPath ? dirPath + '/' : ''}${name}${EXT}`);
+        const ext = EXT[s.type];
+        const name = uniqueName(sanitizeName(s.name), taken, previous, ext);
+        taken.add((name + ext).toLowerCase());
+        paths.set(s.id, `${dirPath ? dirPath + '/' : ''}${name}${ext}`);
       }
     }
     return paths;
@@ -502,7 +610,7 @@ function stableOrder(dirPath: string) {
 
 // The header's name is kept unless the file was renamed by hand.
 function nameFromFile(rf: RemoteFile, parsed: ParsedFile): string {
-  const base = rf.name.replace(/\.fret$/i, '');
+  const base = stripExt(rf.name);
   if (parsed.name) {
     const safe = sanitizeName(parsed.name);
     if (new RegExp(`^${escapeRegExp(safe)}( \\(\\d+\\))?$`, 'i').test(base)) return parsed.name;
@@ -518,13 +626,16 @@ async function scan(
 ): Promise<void> {
   for await (const [name, handle] of dir.entries()) {
     if (name.startsWith('.')) continue;
+    if (!prefix.length && name.toLowerCase() === ATTACHMENTS_DIR) continue;
     const parts = [...prefix, name];
     if (handle.kind === 'directory') {
       dirs.add(key(parts));
       await scan(handle as FileSystemDirectoryHandle, parts, files, dirs);
-    } else if (name.toLowerCase().endsWith(EXT)) {
+    } else {
+      const type = typeOfFile(name);
+      if (!type) continue;
       const file = await (handle as FileSystemFileHandle).getFile();
-      files.set(key(parts), { path: key(parts), dir: prefix, name, file });
+      files.set(key(parts), { path: key(parts), dir: prefix, name, type, file });
     }
   }
 }

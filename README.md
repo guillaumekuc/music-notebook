@@ -1,15 +1,47 @@
 # Music Notebook
 
-A single-page app for taking quick musical notes. It currently supports guitar
-and bass fretboard diagrams, written in a small text language and rendered with
-a TypeScript port of [0xfe/fretboard](https://github.com/0xfe/fretboard).
+A single-page app for taking quick musical notes. Each snippet is one of:
 
-- The preview re-renders as you type. If the code has an error, the last good
-  render stays on screen (dimmed) and the error shows with its line number.
+- **Fretboard:** a guitar or bass fretboard diagram, written in a small text
+  language and rendered with a TypeScript port of
+  [0xfe/fretboard](https://github.com/0xfe/fretboard).
+- **Markdown note:** plain notes in Markdown (GitHub flavour: tables, task lists,
+  strikethrough). A single line break is kept as a line break.
+
+Create either kind with the buttons at the top of the library.
+
+Markdown notes have a few music-notebook extras:
+
+````md
+```fretboard                  a fretboard diagram inside the note,
+option frets=5                written in the fretboard syntax
+show fret=3 string=6 text=G
+```
+
+| Dm7 | G7 | Cmaj7 % |        a chord chart: one bar per cell
+| Bbmaj7 | E7(#9) | Am/G |
+
+[[G major]]                   link to a snippet by name; clicking a link to
+[[G major|the shape]]         a missing name creates that note
+
+- [ ] scales                  task boxes can be ticked in the preview
+````
+
+- Paste or drop an image into the editor to add it to the note. Images are kept
+  with the library and referenced as `attachments/<name>`.
+- Ctrl/Cmd+B bold, Ctrl/Cmd+I italic, Ctrl/Cmd+K link; Enter continues a list
+  (Enter on an empty item ends it).
+- **View** switches between the preview above the editor, side by side (on wide
+  screens) and preview only.
+
+- The preview re-renders as you type. If fretboard code has an error, the last
+  good render stays on screen (dimmed) and the error shows with its line number.
 - **Save PNG** exports at 1×–4× scale, on white or a transparent background
   (shortcut: Ctrl/Cmd+Shift+S). **Save SVG** exports vector output.
+- **Save .md** downloads a Markdown note as a file.
 - **Copy share link** puts the code in the URL. Opening such a link shows it as a
-  draft that you can save to your library.
+  draft that you can save to your library. Shared Markdown is sanitised before
+  it is shown.
 
 ```sh
 npm install
@@ -29,17 +61,23 @@ storage, so the app works offline and needs no server or account.
   Search and filter results show a thumbnail of each snippet.
 - **Use on several devices (Chrome/Edge):** click **Connect folder…** and pick a
   folder inside Dropbox, OneDrive, iCloud Drive or a git repo. The library is
-  mirrored there as real directories and `.fret` files:
+  mirrored there as real directories, `.fret` files and `.md` files:
 
   ```
   Chords/
     G major.fret
   Scales/
     A minor pentatonic.fret
+    Practice log.md
   ```
 
-  Each file starts with an `# id / # name / # tags` header. These are comments in
-  the fretboard syntax, so every file is still valid fretboard code. You can
+  Each `.fret` file starts with an `# id / # name / # tags` header. These are
+  comments in the fretboard syntax, so every file is still valid fretboard code.
+  Each `.md` file holds the same fields as YAML front matter; other front matter
+  keys (from Obsidian, say) are kept. Any `.md` file in the folder becomes a
+  note, so existing Markdown notes can be dropped in. Images live in an
+  `attachments/` directory at the top of the folder; new images are copied both
+  ways, but deleting an image file doesn't delete it from the app. You can
   create, edit, rename, move or delete files outside the app; changes are picked
   up when the tab regains focus (and every minute). If a snippet was edited in
   both places, the app keeps your local version and adds the folder's version
@@ -47,9 +85,11 @@ storage, so the app works offline and needs no server or account.
   once per session.
 - **Back up or move without sync (any browser):** use **Export JSON** /
   **Import JSON**. Importing merges by snippet id, and the newer version wins.
+  Images are included in the export.
 
-Code: `src/storage/` (library, IndexedDB, folder sync, backup) and `src/ui/`
-(sidebar, snippet header).
+Code: `src/storage/` (library, IndexedDB, folder sync, backup), `src/markdown.ts`
+(Markdown rendering and its extensions) and `src/ui/` (sidebar, snippet header,
+note view, Markdown editor keys).
 
 ## Syntax
 

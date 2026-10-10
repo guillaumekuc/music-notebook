@@ -4,12 +4,14 @@ import { exportLibrary, importLibrary } from '../storage/backup';
 import { escapeHtml, timeAgo } from '../util';
 import { icons } from './icons';
 import { thumbnail } from './thumbnail';
+import { markdownExcerpt } from '../markdown';
+import type { SnippetType } from '../storage/types';
 import { toast } from './toast';
 
 export interface SidebarHandlers {
   currentId(): string | null;
   open(id: string): void;
-  newSnippet(folderId: string | null): void;
+  newSnippet(folderId: string | null, type: SnippetType): void;
 }
 
 const EXPANDED_KEY = 'music-notebook:expanded';
@@ -40,7 +42,8 @@ export class Sidebar {
       <div class="sb-head">
         <h2>Library</h2>
         <div class="sb-head-actions">
-          <button type="button" class="icon-btn" data-act="new-snippet" title="New snippet" aria-label="New snippet">${icons.plus}</button>
+          <button type="button" class="icon-btn" data-act="new-fretboard" title="New fretboard" aria-label="New fretboard">${icons.newFretboard}</button>
+          <button type="button" class="icon-btn" data-act="new-note" title="New Markdown note" aria-label="New Markdown note">${icons.newNote}</button>
           <button type="button" class="icon-btn" data-act="new-folder" title="New folder" aria-label="New folder">${icons.folderPlus}</button>
           <button type="button" class="icon-btn only-narrow" data-act="close" title="Close" aria-label="Close library">${icons.close}</button>
         </div>
@@ -145,7 +148,7 @@ export class Sidebar {
           <div class="row snippet-row${s.id === currentId ? ' current' : ''}" data-kind="snippet" data-id="${s.id}"
             draggable="true" style="--depth:${depth}" ${s.id === currentId ? 'aria-current="true"' : ''}>
             <span class="caret-space"></span>
-            <span class="row-icon">${icons.file}</span>
+            <span class="row-icon">${icons[s.type === 'markdown' ? 'note' : 'fretboard']}</span>
             <span class="row-name">${escapeHtml(s.name)}</span>
           </div>`);
       }
@@ -181,6 +184,11 @@ export class Sidebar {
     requestAnimationFrame(() => {
       for (const el of this.body.querySelectorAll<HTMLElement>('.thumb[data-code-id]')) {
         const s = lib.getSnippet(el.dataset.codeId!);
+        if (s?.type === 'markdown') {
+          el.classList.add('text');
+          el.textContent = markdownExcerpt(s.code) || 'Empty note';
+          continue;
+        }
         const url = s ? thumbnail(s.code) : null;
         if (url) el.innerHTML = `<img src="${url}" alt="" />`;
         else el.classList.add('broken');
@@ -240,8 +248,11 @@ export class Sidebar {
     if (act) {
       const folderId = row?.dataset.id || null;
       switch (act) {
-        case 'new-snippet':
-          this.handlers.newSnippet(this.selectedFolderId);
+        case 'new-fretboard':
+          this.handlers.newSnippet(this.selectedFolderId, 'fretboard');
+          return;
+        case 'new-note':
+          this.handlers.newSnippet(this.selectedFolderId, 'markdown');
           return;
         case 'new-folder': {
           const parent = this.selectedFolderId;
@@ -281,7 +292,7 @@ export class Sidebar {
           void this.sync.disconnect().then(() => toast('Folder sync turned off. Your files were left in place.'));
           return;
         case 'export':
-          exportLibrary(lib);
+          void exportLibrary(lib);
           return;
         case 'import':
           this.importInput.click();

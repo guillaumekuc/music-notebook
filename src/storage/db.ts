@@ -1,11 +1,12 @@
 import { deleteDB, openDB, type DBSchema, type IDBPDatabase } from 'idb';
-import type { Folder, Snippet, Tombstone } from './types';
+import type { Asset, Folder, Snippet, Tombstone } from './types';
 
 export interface LibrarySchema extends DBSchema {
   snippets: { key: string; value: Snippet };
   folders: { key: string; value: Folder };
   tombstones: { key: string; value: Tombstone };
   meta: { key: string; value: unknown };
+  assets: { key: string; value: Asset };
 }
 
 export type LibraryDB = IDBPDatabase<LibrarySchema>;
@@ -16,12 +17,15 @@ const LEGACY_DB_NAME = 'vex-fretboard';
 const MIGRATED_KEY = 'migratedFromLegacy';
 
 export async function openLibraryDB(): Promise<LibraryDB> {
-  const db = await openDB<LibrarySchema>(DB_NAME, 1, {
-    upgrade(db) {
-      db.createObjectStore('snippets', { keyPath: 'id' });
-      db.createObjectStore('folders', { keyPath: 'id' });
-      db.createObjectStore('tombstones', { keyPath: 'id' });
-      db.createObjectStore('meta');
+  const db = await openDB<LibrarySchema>(DB_NAME, 2, {
+    upgrade(db, oldVersion) {
+      if (oldVersion < 1) {
+        db.createObjectStore('snippets', { keyPath: 'id' });
+        db.createObjectStore('folders', { keyPath: 'id' });
+        db.createObjectStore('tombstones', { keyPath: 'id' });
+        db.createObjectStore('meta');
+      }
+      if (oldVersion < 2) db.createObjectStore('assets', { keyPath: 'name' });
     },
   });
   await migrateLegacyDB(db);

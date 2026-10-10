@@ -260,3 +260,192 @@ select,
 .app-footer a {
   color: inherit;
 }
+
+/* Panels that belong to one snippet type are hidden for the other. */
+#app[data-type='fretboard'] [data-for='markdown'],
+#app[data-type='markdown'] [data-for='fretboard'] {
+  display: none;
+}
+
+.note {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px 20px;
+  min-height: 120px;
+  overflow-wrap: break-word;
+}
+
+.note:empty::before {
+  content: 'Start typing Markdown below.';
+  display: block;
+  padding: 12px 0;
+  color: var(--muted);
+}
+
+.note :is(h1, h2, h3, h4) {
+  line-height: 1.25;
+  margin: 1em 0 0.4em;
+}
+
+.note h1 {
+  font-size: 1.6rem;
+}
+
+.note h2 {
+  font-size: 1.3rem;
+}
+
+.note h3 {
+  font-size: 1.1rem;
+}
+
+.note :is(p, ul, ol, blockquote, pre, table) {
+  margin: 0.75em 0;
+}
+
+.note :is(ul, ol) {
+  padding-left: 1.5em;
+}
+
+.note li:has(> input[type='checkbox']) {
+  list-style: none;
+  margin-left: -1.3em;
+}
+
+.note a {
+  color: var(--accent);
+}
+
+.note blockquote {
+  margin-left: 0;
+  padding-left: 12px;
+  border-left: 3px solid var(--border);
+  color: var(--muted);
+}
+
+.note code {
+  font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Consolas, monospace;
+  font-size: 0.88em;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0 4px;
+}
+
+.note pre {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  overflow-x: auto;
+}
+
+.note pre code {
+  background: none;
+  border: 0;
+  padding: 0;
+}
+
+.note table {
+  border-collapse: collapse;
+  display: block;
+  overflow-x: auto;
+}
+
+.note :is(th, td) {
+  border: 1px solid var(--border);
+  padding: 4px 10px;
+  text-align: left;
+}
+
+.note img {
+  max-width: 100%;
+}
+
+.note hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+/* Fretboards are drawn in black, so they sit on a light card in dark mode too. */
+.note .fretboard-block {
+  margin: 0.75em 0;
+  padding: 8px;
+  background: var(--stage);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+.note .fretboard-block img {
+  display: block;
+  margin: 0 auto;
+}
+
+.note .block-error {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--error);
+}
+
+.note .missing-image {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  border: 1px dashed var(--border);
+  border-radius: 4px;
+}
+
+.note a.wikilink {
+  text-decoration-style: dotted;
+}
+
+.note a.wikilink.missing {
+  color: var(--muted);
+}
+
+.note .chord-chart {
+  margin: 0.75em 0;
+  font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Consolas, monospace;
+  font-size: 1.05rem;
+}
+
+.note .chart-row {
+  display: flex;
+  border-left: 2px solid var(--text);
+}
+
+.note .chart-bar {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  gap: 0.75em;
+  padding: 4px 10px;
+  border-right: 2px solid var(--text);
+}
+
+.note .chart-row + .chart-row {
+  margin-top: 6px;
+}
+
+/* View modes for Markdown notes. */
+#app[data-type='markdown'][data-view='preview'] :is(#code, .code-foot, .reference) {
+  display: none;
+}
+
+@media (min-width: 1100px) {
+  #app[data-type='markdown'][data-view='side'] .layout {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+
+  #app[data-type='markdown'][data-view='side'] .layout > .panel:last-child {
+    order: -1;
+  }
+
+  #app[data-type='markdown'][data-view='side'] .code {
+    min-height: 60vh;
+  }
+}

@@ -18,7 +18,7 @@ app.innerHTML = `
   <header class="app-header">
     <button type="button" id="library-toggle" class="btn only-narrow" aria-label="Open library">${icons.library} Library</button>
     <div>
-      <h1>Vex Fretboard</h1>
+      <h1>Music Notebook</h1>
       <p>Describe a fretboard in text and it renders as you type.</p>
     </div>
   </header>

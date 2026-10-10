@@ -35,7 +35,7 @@ export interface Tombstone {
 }
 
 export interface LibraryExport {
-  format: 'vex-fretboard-library';
+  format: 'music-notebook-library' | 'vex-fretboard-library';
   version: 1;
   exportedAt: number;
   folders: Folder[];

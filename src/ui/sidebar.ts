@@ -12,8 +12,8 @@ export interface SidebarHandlers {
   newSnippet(folderId: string | null): void;
 }
 
-const EXPANDED_KEY = 'vex-fretboard:expanded';
-const DRAG_TYPE = 'application/x-vex-fretboard';
+const EXPANDED_KEY = 'music-notebook:expanded';
+const DRAG_TYPE = 'application/x-music-notebook';
 
 export class Sidebar {
   selectedFolderId: string | null = null;

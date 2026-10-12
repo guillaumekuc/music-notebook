@@ -1,29 +1,46 @@
 # Next
 
-Ideas for what to build next, roughly in order. Nothing here is decided yet.
+Ideas for what to build next, roughly in order. Only the chromatic notation
+design below is decided.
 
 ## Chromatic notation
 
-Convert or fork the notation engine (`src/notation/`) so that it:
+Notation with one position per semitone, so every interval looks the same in
+every key, with no key signatures or accidentals. Researched on
+[musicnotation.org](https://musicnotation.org/).
 
-- **Displays chromatic notation** instead of standard notation: one position per
-  semitone, so every interval looks the same in every key, with no key
-  signatures or accidentals.
-- **Is typed with integer note values** instead of note names, e.g. pitch classes
-  0–11 plus an octave, or MIDI numbers (60 = middle C).
+Decided:
 
-To decide:
+- **Staff: Klaus Lieber's** ([1983](https://musicnotation.org/system/untitled-by-klaus-lieber/)).
+  Lines a whole step apart, six per octave, all drawn: C D E F♯ G♯ A♯. Every C
+  is a bold line that separates the octaves, so even notes sit on lines and odd
+  notes in spaces. Octaves stack and share their bold C.
+- **Notes are MIDI numbers**, with C4 = 60 (not the Yamaha C3 = 60). The octave
+  is `floor(n / 12) − 1`.
+- **Two-colour noteheads with a 6-6 pattern:** notes on lines and notes in
+  spaces get different colours. This repeats what the position says, but makes
+  half-step motion visible at a glance. The 7-5 pattern (black keys solid, as
+  in Klavar) is avoided because it builds C major back in.
+- **Rhythm is standard notation except half notes, which get a double stem**
+  (as in [TwinNote](https://musicnotation.org/system/twinnote-by-paul-morris/)).
+  Whole notes have no stem, so either colour works; quarters and shorter keep
+  their stems, flags and beams; dots, ties, tuplets and rests are unchanged.
+- **No clef: an octave number** (4 for 60–71) next to each octave of the staff.
+- **Range: set explicitly** by the user at first (e.g. octaves 3–5). Notes
+  outside it get ledger lines.
 
-- Which chromatic system to draw (e.g. Klavarskribo, Equiton, Twinline, a 6-6
-  staff), or one of our own.
-- The integer convention: 0 = C or 0 = the tonic? Octave numbers or MIDI?
-- Convert or fork: replace standard notation, or add a separate snippet type
-  next to it. A fork keeps standard notation working; much of the existing code
-  could be shared (parsing of measures, ties, tuplets, lyrics, text, tab, the
-  layout).
-- How rhythm is shown: borrow standard note values, or something else.
-- Whether VexFlow is still the right renderer, since chromatic staves would
-  replace most of what it draws.
+Later: pick the range automatically. Draft rules, in order of preference:
+
+1. The core range is the octaves that hold most of the notes.
+2. Ledger lines for notes up to about 4 semitones (2 ledger lines) past an
+   outer bold C.
+3. An 8va / 8vb shift for a single bar whose notes are mostly further out, if
+   shifting puts them inside the core range.
+4. Add a whole octave only when notes outside the range are frequent (several
+   bars, or more than some share of the notes).
+
+Still open: which colour the line notes get, and whether to add a variant with
+plain noteheads.
 
 ## Remove the search thumbnails
 

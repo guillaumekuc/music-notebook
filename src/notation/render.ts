@@ -6,6 +6,7 @@ import {
   type RenderContext, type Stave, type StemmableNote, type TabNote, type Voice,
 } from 'vexflow/core';
 import { NotationError, type Bar, type Piece, type Staff, type Token } from './parse';
+import { chromaticNote, chromaticStave, staffGeometry } from './chromatic';
 
 const TOP = 20;
 const LINE_GAP = 30;
@@ -47,7 +48,7 @@ function stateAt(piece: Piece, m: number) {
   return { key, time, clefs };
 }
 
-const isRestToken = (t: Token) => (t.tab ? t.tab.rest : /\/r(?=$|[./[])/.test(t.core));
+const isRestToken = (t: Token) => (t.tab ?? t.chroma)?.rest ?? /\/r(?=$|[./[])/.test(t.core);
 
 // Rows of text a staff needs above and below it.
 function textRows(s: Staff) {
@@ -147,7 +148,8 @@ function layout(piece: Piece, words: Map<Token, string[]>) {
       + (text.above + text.below) * TEXT_HEIGHT;
     const tab = s.kind === 'tab' ? 30 + s.tuning.split(',').length * 13 : 0;
     const notation = s.kind === 'notation' || s.withNotation ? NOTATION_HEIGHT : 0;
-    return tab + notation + lyrics;
+    const chromatic = s.kind === 'chromatic' ? NOTATION_HEIGHT + (staffGeometry(s).lines - 5) * 10 : 0;
+    return tab + notation + chromatic + lyrics;
   };
   const lineHeight = piece.staves.reduce((h, s) => h + staffHeight(s), 0) + LINE_GAP;
   return { placed, lines: lines.length, width, lineHeight };
@@ -262,6 +264,7 @@ export function renderPiece(piece: Piece): RenderedNotation {
       const notationVoices: Voice[] = [];
       const tabVoices: Voice[] = [];
       const tuning = staff.kind === 'tab' ? new Tuning(staff.tuning) : null;
+      const chromatic = staff.kind === 'chromatic' ? staffGeometry(staff) : null;
 
       staff.voices.forEach((voice, vi) => {
         const tokens = voice.measures[p.index]?.tokens ?? [];
@@ -277,6 +280,13 @@ export function renderPiece(piece: Piece): RenderedNotation {
             const src = tokens.length ? tokens.map((t) => t.core).join(', ') : 'B4/1/r';
             notationNotes = score.notes(src, { clef, stem: stem === 0 ? 'auto' : stem > 0 ? 'up' : 'down' });
             tokens.forEach((token, i) => measureEntries.push({ token, line: p.line, notation: notationNotes[i] }));
+          } else if (chromatic) {
+            for (const token of tokens.length ? tokens : [null]) {
+              const c = token?.chroma ?? { midi: [], rest: true, duration: '1', dots: 0 };
+              const note = chromaticNote(chromatic, c, stem);
+              notationNotes.push(note);
+              if (token) measureEntries.push({ token, line: p.line, notation: note });
+            }
           } else {
             for (const token of tokens.length ? tokens : [null]) {
               const t = token?.tab ?? { positions: [], rest: true, duration: '1', dots: 0, techniques: '' };
@@ -337,7 +347,14 @@ export function renderPiece(piece: Piece): RenderedNotation {
         entries[si][vi].push(...measureEntries);
       });
 
-      if (notationVoices.length) {
+      if (notationVoices.length && chromatic) {
+        // The staff is taller than five lines by this many line spaces.
+        const extra = chromatic.lines - 5;
+        const stave = chromaticStave(factory, chromatic, p.x, p.width, p.lineStart);
+        system.addStave({ voices: notationVoices, stave, spaceAbove: textSpace, spaceBelow: lyricSpace + extra });
+        if (!before || before.time !== time) stave.addTimeSignature(time);
+        staves.push(stave);
+      } else if (notationVoices.length) {
         const stave = system.addStave({ voices: notationVoices, spaceAbove: textSpace, spaceBelow: tabVoices.length ? 0 : lyricSpace });
         const staveClef = staff.kind === 'tab' ? 'treble' : clef;
         if (p.lineStart) stave.addClef(staveClef).addKeySignature(key);

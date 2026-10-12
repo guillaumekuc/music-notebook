@@ -125,7 +125,8 @@ tempo "Allegro" q=132    tempo mark (or just: tempo 120)
 width 700                measures wrap onto lines this wide
 staff bass               start another staff (two make a grand staff)
 staff tab notation       guitar tab, with notation worked out above
-staff tab tuning=dropd   standard, dropd, dadgad, open-g, bass, ukulele, …</pre>
+staff tab tuning=dropd   standard, dropd, dadgad, open-g, bass, ukulele, …
+staff chromatic range=3-5  chromatic staff, octaves 3 to 5 (default: the notes' octaves)</pre>
             <h3>Voices and notes</h3>
             <pre>voice C5/q, B4, A4, G4 | E4/h, C4     | separates measures
 lyrics Hel- lo there my friend         one word per note; _ skips one
@@ -143,6 +144,11 @@ C4/h~, C4/q         tie
             <pre>5/3  (0/1 1/2 0/3)/h  x/6  r/q       fret/string, chord, muted, rest
 7/3h, 9/3     hammer-on  ·  p pull-off  ·  s slide
 7/3/q b       bend  ·  v vibrato</pre>
+            <h3>Chromatic notes</h3>
+            <pre>60/q  (60 64 67)/h  r/q              MIDI number (60 = C4), chord, rest</pre>
+            <p>On a chromatic staff every semitone has its own place: even notes sit on lines
+              (solid), odd ones in spaces (hollow), and every C is a bold line. Half notes have a
+              double stem. The number at the start of each octave replaces the clef.</p>
             <p>Write notes as they sound: the key signature decides which accidentals are shown.
               Short notes are beamed automatically; with two voices the first has stems up.
               Lines starting with <code>#</code> are comments.</p>

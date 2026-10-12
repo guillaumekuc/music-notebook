@@ -137,6 +137,18 @@ to the next notes until changed, also across bar lines; `C4/q.` is dotted;
 **Staves.** `staff bass` starts another staff; voices after it belong to it. Two
 notation staves are drawn as a grand staff with a brace.
 
+**Chromatic staff.** `staff chromatic` draws a chromatic staff after Klaus
+Lieber (1983), with one place per semitone and no key signatures or
+accidentals. Lines are a whole step apart, six per octave (C D E F♯ G♯ A♯), and
+every C is a bold line between octaves. Notes are MIDI numbers, with 60 = C4:
+`60/q`, `(60 64 67)/h` for a chord, `r/q` for a rest. Even notes sit on lines
+and have solid noteheads; odd ones sit in spaces and are hollow. Since colour
+shows pitch, a half note has a double stem instead. Rhythm otherwise works as
+in standard notation, and so do ties, slurs, tuplets, marks, text and lyrics.
+In place of a clef, each octave is labelled with its number. `range=3-5` shows
+octaves 3 to 5 (`range=4` one octave); without it, the staff shows the octaves
+its notes are in. Notes outside the range get ledger lines.
+
 **Tab.** `staff tab` starts a guitar tab staff; `staff tab notation` also draws
 the notes in standard notation above it, worked out from the frets.
 `tuning=` takes `standard`, `dropd`, `dadgad`, `open-g`, `open-d`,
@@ -155,7 +167,7 @@ Lines starting with `#` are comments.
 crescendo hairpins, ottava lines, cross-staff beams and multi-measure rests.
 
 Code: `src/notation/` (`parse.ts` reads the text, `render.ts` lays it out with
-VexFlow). The music fonts (Bravura and Academico, SIL OFL) are bundled, so
+VexFlow, `chromatic.ts` draws chromatic staves). The music fonts (Bravura and Academico, SIL OFL) are bundled, so
 notation works offline.
 
 ## Fretboard syntax

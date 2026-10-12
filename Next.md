@@ -42,6 +42,20 @@ Later: pick the range automatically. Draft rules, in order of preference:
 Still open: which colour the line notes get, and whether to add a variant with
 plain noteheads.
 
+## Decouple note input from the staff
+
+Today the staff decides how notes are written: note names (`C#4`) on standard
+staves, MIDI numbers (`61`) on `staff chromatic`. The two should be
+independent, so either kind of staff accepts either kind of input:
+
+- MIDI numbers on a standard staff, spelled from the key signature (61 is C♯
+  in D major, D♭ in A♭ major).
+- Note names on a chromatic staff, which only needs their pitch.
+
+Ideally the parser tells which one a note is by itself: a bare number is MIDI,
+a letter is a note name. Tab's `fret/string` notes need care, since they are
+numbers too.
+
 ## Remove the search thumbnails
 
 The images in the library's search results are too small to read, and snippet

@@ -6,7 +6,8 @@ import { Library, type SnippetInit } from './storage/library';
 import { FolderSync, sanitizeName } from './storage/folderSync';
 import type { SnippetType } from './storage/types';
 import { setTask, wordCount } from './markdown';
-import { loadNotationFonts, renderNotation, standaloneSvg } from './notation';
+import { loadNotationFonts, performNotation, renderNotation, standaloneSvg } from './notation';
+import { Player } from './audio/synth';
 import { NoteView } from './ui/noteView';
 import { attachMarkdownEditor } from './ui/markdownEditor';
 import { Sidebar } from './ui/sidebar';
@@ -51,6 +52,7 @@ app.innerHTML = `
         <div class="panel-head">
           <h2 id="preview-title">Preview</h2>
           <div class="actions" data-for="fretboard notation">
+            <button type="button" id="play" class="btn" data-for="notation" title="Play (Ctrl+Space)">Play</button>
             <label class="field">Scale
               <select id="scale">
                 <option value="1">1×</option>
@@ -201,10 +203,12 @@ const scaleSelect = $<HTMLSelectElement>('#scale');
 const transparentInput = $<HTMLInputElement>('#transparent');
 const savePngButton = $<HTMLButtonElement>('#save-png');
 const saveSvgButton = $<HTMLButtonElement>('#save-svg');
+const playButton = $<HTMLButtonElement>('#play');
 const copyLinkButton = $<HTMLButtonElement>('#copy-link');
 const saveMdButton = $<HTMLButtonElement>('#save-md');
 const noteViewSelect = $<HTMLSelectElement>('#note-view');
 
+const player = new Player();
 const library = new Library();
 const sync = new FolderSync(library);
 let sidebar: Sidebar;
@@ -242,6 +246,7 @@ function setType(type: SnippetType) {
   app.dataset.type = type;
   codeInput.spellcheck = type === 'markdown';
   codeInput.setAttribute('aria-label', CODE_LABEL[type]);
+  player.stop();
   current?.destroy();
   current = null;
   currentNotation = null;
@@ -251,6 +256,7 @@ function setType(type: SnippetType) {
 }
 
 function render() {
+  player.stop();
   if (currentType === 'markdown') return renderNote();
   if (currentType === 'notation') return renderScore();
   const next = new FretboardDiv();
@@ -298,6 +304,19 @@ function renderNote() {
 function setButtonsEnabled(enabled: boolean) {
   savePngButton.disabled = !enabled;
   saveSvgButton.disabled = !enabled;
+  playButton.disabled = !enabled;
+}
+
+function togglePlay() {
+  if (player.playing) return player.stop();
+  try {
+    const performance = performNotation(codeInput.value);
+    if (!performance.events.length) return setStatus('Nothing to play', 'info');
+    player.play(performance);
+    playButton.textContent = 'Stop';
+  } catch (e) {
+    setStatus(e instanceof Error ? e.message : String(e), 'error');
+  }
 }
 
 // --- Opening and saving snippets ---
@@ -586,6 +605,8 @@ function wireEditor() {
 
   savePngButton.addEventListener('click', savePng);
   saveSvgButton.addEventListener('click', saveSvg);
+  playButton.addEventListener('click', togglePlay);
+  player.onStop = () => (playButton.textContent = 'Play');
   saveMdButton.addEventListener('click', saveMarkdown);
   noteViewSelect.addEventListener('change', () => setNoteView(noteViewSelect.value));
   attachMarkdownEditor(codeInput, { active: () => currentType === 'markdown', saveImage });
@@ -604,6 +625,11 @@ function wireEditor() {
   $('#backdrop').addEventListener('click', () => document.body.classList.remove('library-open'));
 
   document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === ' ' && currentType === 'notation') {
+      e.preventDefault();
+      if (!playButton.disabled) togglePlay();
+      return;
+    }
     if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 's') return;
     e.preventDefault();
     if (e.shiftKey) {

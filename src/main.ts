@@ -30,7 +30,13 @@ const DRAFT_NAME: Record<SnippetType, string> = {
   markdown: 'Shared note',
   notation: 'Shared notation',
 };
-const NOTE_VIEW_KEY = 'music-notebook:note-view';
+// How the preview and the code are laid out, chosen per snippet type.
+const VIEWS = ['stacked', 'side', 'preview'] as const;
+type View = (typeof VIEWS)[number];
+const DEFAULT_VIEW: Record<SnippetType, View> = { fretboard: 'stacked', notation: 'stacked', markdown: 'stacked' };
+const viewKey = (type: SnippetType) => `music-notebook:view:${type}`;
+// Where the Markdown view was kept before every type had one.
+const OLD_NOTE_VIEW_KEY = 'music-notebook:note-view';
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
@@ -51,8 +57,17 @@ app.innerHTML = `
       <section class="panel" aria-labelledby="preview-title">
         <div class="panel-head">
           <h2 id="preview-title">Preview</h2>
+          <div class="actions">
+            <label class="field">View
+              <select id="view">
+                <option value="stacked">Stacked</option>
+                <option value="side">Side by side</option>
+                <option value="preview">Preview only</option>
+              </select>
+            </label>
+          </div>
           <div class="actions" data-for="fretboard notation">
-            <button type="button" id="play" class="btn" data-for="notation" title="Play (Ctrl+Space)">Play</button>
+            <button type="button" id="play" class="btn" data-for="notation" title="Play (Ctrl+Space)"></button>
             <label class="field">Scale
               <select id="scale">
                 <option value="1">1×</option>
@@ -66,13 +81,6 @@ app.innerHTML = `
             <button type="button" id="save-png" class="btn btn-primary" title="Ctrl+Shift+S">Save PNG</button>
           </div>
           <div class="actions" data-for="markdown">
-            <label class="field">View
-              <select id="note-view">
-                <option value="stacked">Stacked</option>
-                <option value="side">Side by side</option>
-                <option value="preview">Preview only</option>
-              </select>
-            </label>
             <button type="button" id="save-md" class="btn">Save .md</button>
           </div>
         </div>
@@ -206,7 +214,7 @@ const saveSvgButton = $<HTMLButtonElement>('#save-svg');
 const playButton = $<HTMLButtonElement>('#play');
 const copyLinkButton = $<HTMLButtonElement>('#copy-link');
 const saveMdButton = $<HTMLButtonElement>('#save-md');
-const noteViewSelect = $<HTMLSelectElement>('#note-view');
+const viewSelect = $<HTMLSelectElement>('#view');
 
 const player = new Player();
 const library = new Library();
@@ -244,6 +252,7 @@ function setType(type: SnippetType) {
   if (type === currentType) return;
   currentType = type;
   app.dataset.type = type;
+  showView();
   codeInput.spellcheck = type === 'markdown';
   codeInput.setAttribute('aria-label', CODE_LABEL[type]);
   player.stop();
@@ -307,13 +316,17 @@ function setButtonsEnabled(enabled: boolean) {
   playButton.disabled = !enabled;
 }
 
+function showPlaying(playing: boolean) {
+  playButton.innerHTML = playing ? `${icons.stop} Stop` : `${icons.play} Play`;
+}
+
 function togglePlay() {
   if (player.playing) return player.stop();
   try {
     const performance = performNotation(codeInput.value);
     if (!performance.events.length) return setStatus('Nothing to play', 'info');
     player.play(performance);
-    playButton.textContent = 'Stop';
+    showPlaying(true);
   } catch (e) {
     setStatus(e instanceof Error ? e.message : String(e), 'error');
   }
@@ -472,15 +485,30 @@ async function saveImage(file: File): Promise<string> {
   return name;
 }
 
-function setNoteView(view: string) {
-  if (!['stacked', 'side', 'preview'].includes(view)) view = 'stacked';
-  app.dataset.view = view;
-  noteViewSelect.value = view;
+function storedView(type: SnippetType): View {
+  let view: string | null = null;
   try {
-    localStorage.setItem(NOTE_VIEW_KEY, view);
+    view = localStorage.getItem(viewKey(type)) ?? (type === 'markdown' ? localStorage.getItem(OLD_NOTE_VIEW_KEY) : null);
   } catch {
     // ignore
   }
+  return VIEWS.includes(view as View) ? (view as View) : DEFAULT_VIEW[type];
+}
+
+// Shows the open snippet type's view.
+function showView() {
+  const view = storedView(currentType);
+  app.dataset.view = view;
+  viewSelect.value = view;
+}
+
+function setView(view: string) {
+  try {
+    localStorage.setItem(viewKey(currentType), view);
+  } catch {
+    // ignore
+  }
+  showView();
 }
 
 // --- Share links ---
@@ -606,9 +634,9 @@ function wireEditor() {
   savePngButton.addEventListener('click', savePng);
   saveSvgButton.addEventListener('click', saveSvg);
   playButton.addEventListener('click', togglePlay);
-  player.onStop = () => (playButton.textContent = 'Play');
+  player.onStop = () => showPlaying(false);
   saveMdButton.addEventListener('click', saveMarkdown);
-  noteViewSelect.addEventListener('change', () => setNoteView(noteViewSelect.value));
+  viewSelect.addEventListener('change', () => setView(viewSelect.value));
   attachMarkdownEditor(codeInput, { active: () => currentType === 'markdown', saveImage });
 
   copyLinkButton.addEventListener('click', async () => {
@@ -670,13 +698,8 @@ function saveDraft() {
 
 async function start() {
   app.dataset.type = currentType;
-  let view = 'stacked';
-  try {
-    view = localStorage.getItem(NOTE_VIEW_KEY) ?? view;
-  } catch {
-    // ignore
-  }
-  setNoteView(view);
+  showView();
+  showPlaying(false);
   setButtonsEnabled(false);
   // Notation is measured with its music font, so that loads first.
   await loadNotationFonts().catch((e) => console.error('Could not load notation fonts', e));

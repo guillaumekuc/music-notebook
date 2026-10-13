@@ -16,5 +16,7 @@ export const icons = {
   trash: svg('<path d="M2.5 4h11M6 4V2.5h4V4M4 4l.75 9.5h6.5L12 4"/>'),
   library: svg('<path d="M2.5 2.5v11M5.5 2.5v11M8.5 3l3.5 10.5"/>'),
   close: svg('<path d="M4 4l8 8M12 4l-8 8"/>'),
+  play: svg('<path d="M4.75 2.75v10.5L13 8z" fill="currentColor"/>'),
+  stop: svg('<rect x="3.5" y="3.5" width="9" height="9" rx="1" fill="currentColor"/>'),
   sync: svg('<path d="M13 5.5A5.25 5.25 0 0 0 3.2 6M3 10.5A5.25 5.25 0 0 0 12.8 10"/><path d="M13 2.5v3h-3M3 13.5v-3h3"/>'),
 };

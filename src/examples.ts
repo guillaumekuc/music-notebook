@@ -70,7 +70,7 @@ option width=900
 option height=170`,
   },
   {
-    name: 'Notation: melody in G',
+    name: 'Melody in G',
     type: 'notation',
     code: `# Notes are written as they sound; the key decides the accidentals.
 clef treble
@@ -79,7 +79,7 @@ time 4/4
 voice G4/q, A4, B4, C5 | D5/8, E5, F#5, G5, D5/h | (G4 B4 D5)/1`,
   },
   {
-    name: 'Notation: two voices',
+    name: 'Two voices',
     type: 'notation',
     code: `clef treble
 time 3/4
@@ -87,7 +87,7 @@ voice E5/q, D5, C5 | B4/h. | C5/8, D5, E5/q, C5 | A4/h.
 voice C4/h, E4/q | G3/h. | A3/h, A3/q | A3/h.`,
   },
   {
-    name: 'Notation: lead sheet',
+    name: 'Lead sheet',
     type: 'notation',
     code: `tempo "Moderato" q=96
 key F
@@ -96,7 +96,7 @@ voice "F"C5/q, A4, F4 | "C7"G4/h, C4/q | "F"F4/h.~ | F4/h. |]
 lyrics Hap- py birth- day`,
   },
   {
-    name: 'Notation: guitar tab',
+    name: 'Guitar tab',
     type: 'notation',
     code: `# Tab with the notes worked out in notation above it
 time 4/4
@@ -104,7 +104,7 @@ staff tab notation
 voice 0/6/8, 2/6, 3/5, 0/4, 2/4h, 4/4, 2/3, 0/2 | (0/1 1/2 0/3 2/4 3/5)/h, 7/3/q b, 5/2 v |]`,
   },
   {
-    name: 'Notation: piano',
+    name: 'Piano',
     type: 'notation',
     code: `key G
 time 4/4
@@ -114,7 +114,7 @@ staff bass
 voice (G2 D3)/1 | (G2 D3 G3)/1 |]`,
   },
   {
-    name: 'Notation: chromatic staff',
+    name: 'Chromatic staff',
     type: 'notation',
     code: `# MIDI numbers, 60 = C4. Even notes sit on lines (solid), odd ones in
 # spaces (hollow); every C is a bold line. Half notes have a double stem.
@@ -123,20 +123,20 @@ staff chromatic range=4-5
 voice 60/8, 62, 64, 65, 67, 69, 71, 72 | (60 64 67)/h, (62 65 69)/q, r | 72/q., 71/8, 69/q, 67 | 64/h, 60 | 60/1 |]`,
   },
   {
-    name: 'Progression: chord symbols',
+    name: 'Chord symbols',
     type: 'progression',
     code: `# Chord symbols; each cell also shows the relationship from the chord before.
 | Dm7 | G7 | Cmaj7 | % |
 | Em7  A7 | Dm7  G7 | C6 / / G7 | C |]`,
   },
   {
-    name: 'Progression: relationships only',
+    name: 'Relationships only',
     type: 'progression',
     code: `# No root: only the relationships show. Add a line like "root A" to name the chords.
 | I.m | bVII.M | bVI.M | V.M(b7) :|`,
   },
   {
-    name: 'Progression: mixed, with sections',
+    name: 'Mixed, with sections',
     type: 'progression',
     code: `# Symbols and relationships can be mixed; the other one is worked out.
 root A
@@ -148,7 +148,7 @@ section B
 | Bm7b5 | E7 | N.C. | E7 :|x2`,
   },
   {
-    name: 'Notation: bass line',
+    name: 'Bass line',
     type: 'notation',
     code: `clef bass
 key F

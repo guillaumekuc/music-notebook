@@ -42,6 +42,20 @@ const viewKey = (type: SnippetType) => `music-notebook:view:${type}`;
 const OLD_NOTE_VIEW_KEY = 'music-notebook:note-view';
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 
+// The examples menu, grouped by snippet type.
+const EXAMPLE_GROUPS: [SnippetType, string][] = [
+  ['fretboard', 'Fretboard'],
+  ['notation', 'Notation'],
+  ['progression', 'Chord progression'],
+  ['markdown', 'Markdown'],
+];
+function exampleOptions(): string {
+  return EXAMPLE_GROUPS.map(([type, label]) => {
+    const options = EXAMPLES.map((e, i) => ((e.type ?? 'fretboard') === type ? `<option value="${i}">${e.name}</option>` : '')).join('');
+    return options ? `<optgroup label="${label}">${options}</optgroup>` : '';
+  }).join('');
+}
+
 const app = document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML = `
   <header class="app-header">
@@ -100,7 +114,7 @@ app.innerHTML = `
           <label class="field">
             <select id="examples" aria-label="New snippet from example">
               <option value="">New from example…</option>
-              ${EXAMPLES.map((e, i) => `<option value="${i}">${e.name}</option>`).join('')}
+              ${exampleOptions()}
             </select>
           </label>
           <button type="button" id="copy-link" class="btn btn-small">Copy share link</button>

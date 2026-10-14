@@ -177,6 +177,11 @@ select,
   transition: opacity 0.15s;
 }
 
+/* The progression bar being played. */
+.stage [data-bar].playing {
+  fill: #fdeaa7;
+}
+
 .stage.stale {
   opacity: 0.4;
 }

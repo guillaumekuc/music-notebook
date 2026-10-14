@@ -10,10 +10,17 @@ export interface NoteEvent {
   midi: number[];
 }
 
+// A moment to mark while playing, e.g. a progression bar starting.
+export interface Cue {
+  start: number;
+  id: number;
+}
+
 export interface Performance {
   events: NoteEvent[];
   // Seconds from the first beat to the end of the last measure.
   length: number;
+  cues?: Cue[];
 }
 
 const STEPS: Record<string, number> = { c: 0, d: 2, e: 4, f: 5, g: 7, a: 9, b: 11 };

@@ -15,13 +15,26 @@
 // a Roman numeral up from the previous root, the quality M m d A, and the
 // added intervals 7 (major 7th), b7, 9, #11, ... The first chord of a
 // progression with no root is I.<quality>, e.g. I.m(11).
+//
+//   tempo 100                   quarter notes per minute, for playback
+//   time 3/4                    beats per bar, for playback (default 4/4)
+//
+// Playback follows repeats and endings. A progression with no root plays as
+// if it started on C.
 
 import { parseProgression } from './parse';
 import { renderProgression as draw, type RenderedProgression } from './render';
+import { performProgression as perform } from './playback';
+import type { Performance } from '../notation/playback';
 
 export { ProgressionError } from './parse';
 export type { RenderedProgression } from './render';
 
 export function renderProgression(code: string): RenderedProgression {
   return draw(parseProgression(code));
+}
+
+// The chords to play, with their timing; cues mark each bar (see playback.ts).
+export function performProgression(code: string): Performance {
+  return perform(parseProgression(code));
 }

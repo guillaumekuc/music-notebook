@@ -54,6 +54,7 @@ export function renderProgression(p: Progression): RenderedProgression {
   const roomAbove = (bars: Bar[]) => (bars.some((b) => b.endingStart || b.repeatCount) ? ENDING_ROOM : 0);
 
   let y = PAD;
+  let barIndex = 0; // across all rows, for highlighting during playback
   for (const row of p.rows) {
     y += roomAbove(row.bars);
     const top = y;
@@ -68,7 +69,7 @@ export function renderProgression(p: Progression): RenderedProgression {
 
     row.bars.forEach((bar, i) => {
       const x = PAD + gutter + i * cell;
-      add(el('rect', { x, y: top, width: cell, height: ROW_HEIGHT, fill: 'none', stroke: GRID, 'stroke-width': 1 }));
+      add(el('rect', { x, y: top, width: cell, height: ROW_HEIGHT, fill: 'none', stroke: GRID, 'stroke-width': 1, 'data-bar': barIndex++ }));
       barLine(bar.left, x, 'left', top);
       barLine(bar.right, x + cell, 'right', top);
 

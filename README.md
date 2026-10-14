@@ -188,6 +188,8 @@ one and the other is worked out; the two can be mixed freely.
 ```
 root A                         the root the first chord relates to (optional)
 width 700                      grid width in px
+tempo 100                      quarter notes per minute, for Play
+time 3/4                       beats per bar, for Play (default 4/4)
 section A                      a label for the rows that follow
 |: I.m(b7) | bIII.M | bVII.M | IV.M(b7) |
 | Am  G | F  E7 |[1 Am | E7 :|[2 Am | % ||
@@ -224,8 +226,17 @@ C, `#IV` above C is F♯), and chord symbols are built from the quality and the
 added intervals (M + ♭7 is `7`, M + 7 `maj7`, d + ♭7 `ø7`). Sus and power
 chords have no triad quality, so their relationships show `?`.
 
+**Play** (Ctrl/Cmd+Space) plays the progression and highlights each bar as it
+plays. It follows repeats and endings: a repeated section plays twice (or `xN`
+times), with the 1st ending the first time and the 2nd after. Each chord is
+voiced close to the one before, in the inversion that moves the voices least
+(as in Chordex), over its root (or slash bass) in the bass. Chords split a bar
+evenly, `/` keeps a chord sounding and `N.C.` is silent. A progression with no
+root plays as if it started on C.
+
 Code: `src/progression/` (`theory.ts` chords and intervals, `parse.ts` the text
-and the relationships, `render.ts` the SVG grid).
+and the relationships, `render.ts` the SVG grid, `playback.ts` the play order
+and voicing).
 
 ## Fretboard syntax
 

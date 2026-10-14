@@ -12,15 +12,18 @@ export class Player {
   private out: GainNode | null = null;
   private oscillators: OscillatorNode[] = [];
   private timer: number | undefined;
+  private cueTimers: number[] = [];
   // Called when playback ends by itself or is stopped.
   onStop: (() => void) | null = null;
+  // Called as each of the performance's cues comes up.
+  onCue: ((id: number) => void) | null = null;
 
   get playing(): boolean {
     return this.out !== null;
   }
 
   // Must be called from a user gesture the first time, for the AudioContext.
-  play({ events, length }: Performance): void {
+  play({ events, length, cues = [] }: Performance): void {
     this.stop();
     this.ctx ??= new AudioContext();
     const ctx = this.ctx;
@@ -37,11 +40,16 @@ export class Player {
     for (const e of events) {
       for (const midi of e.midi) this.tone(ctx, out, midi, t0 + e.start, e.duration);
     }
+    // Timers for cues, lined up with the audio clock's start.
+    const lead = (t0 - ctx.currentTime) * 1000;
+    this.cueTimers = cues.map((c) => window.setTimeout(() => this.onCue?.(c.id), lead + c.start * 1000));
     this.timer = window.setTimeout(() => this.stop(), (length + RELEASE) * 1000 + 100);
   }
 
   stop(): void {
     window.clearTimeout(this.timer);
+    this.cueTimers.forEach((t) => window.clearTimeout(t));
+    this.cueTimers = [];
     if (!this.out) return;
     for (const o of this.oscillators) {
       try {

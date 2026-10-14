@@ -1,13 +1,15 @@
 # Next
 
-Ideas for what to build next, roughly in order. Only the chromatic notation
-design below is decided.
+What is built, what was decided along the way, and what is left for later,
+by feature. Open ideas come last.
 
 ## Chromatic notation
 
 Notation with one position per semitone, so every interval looks the same in
 every key, with no key signatures or accidentals. Researched on
 [musicnotation.org](https://musicnotation.org/).
+
+Done: `staff chromatic` in notation snippets (see the README).
 
 Decided:
 
@@ -42,32 +44,12 @@ Later: pick the range automatically. Draft rules, in order of preference:
 Still open: which colour the line notes get, and whether to add a variant with
 plain noteheads.
 
-## Decouple note input from the staff
-
-Today the staff decides how notes are written: note names (`C#4`) on standard
-staves, MIDI numbers (`61`) on `staff chromatic`. The two should be
-independent, so either kind of staff accepts either kind of input:
-
-- MIDI numbers on a standard staff, spelled from the key signature (61 is C♯
-  in D major, D♭ in A♭ major).
-- Note names on a chromatic staff, which only needs their pitch.
-
-Ideally the parser tells which one a note is by itself: a bare number is MIDI,
-a letter is a note name. Tab's `fret/string` notes need care, since they are
-numbers too.
-
-## Remove the search thumbnails
-
-The images in the library's search results are too small to read, and snippet
-names are evocative enough. Remove them (`src/ui/sidebar.ts`,
-`src/ui/thumbnail.ts`) and show name, folder, tags and date only.
-
 ## Chord progressions
 
 Done: the `progression` snippet type and ```` ```progression ```` blocks in
 notes (see the README). Each cell shows the chord symbol and the chord
 relationship (CR) from the chord before, as in Chordex (`m ♭III M`), whichever
-of the two was written.
+of the two was written. A `tempo` or `time` line shows above the grid.
 
 Decided:
 
@@ -89,15 +71,29 @@ Later:
 
 ## Sound preview
 
-Notation snippets have a basic Play button (Ctrl+Space): a triangle-wave
-synth with the Web Audio API (`src/audio/synth.ts`), fed by
-`src/notation/playback.ts`. Repeats are played once, and tab plays at written
-pitch (an octave above a guitar's).
+Done: a Play button (Ctrl+Space) for notation and chord progressions, and a
+play button on their blocks in Markdown notes. The sound is a triangle-wave
+synth with the Web Audio API (`src/audio/synth.ts`).
 
-Chord progressions play too, following repeats and endings, with each chord
-voiced close to the one before (as in Chordex) and the playing bar
-highlighted.
+- **Notation** (`src/notation/playback.ts`) plays `|: :|` repeats twice. Tab
+  plays at written pitch (an octave above a guitar's).
+- **Progressions** (`src/progression/playback.ts`) follow repeats and endings
+  and highlight the bar playing. Each chord is voiced close to the one before
+  (as in Chordex), voices paired in pitch order, over a bass note.
 
-Still to do: play ```notation and ```progression blocks in Markdown notes,
-highlight what is playing in notation, honour repeats in notation, a tempo
-control, a sampled instrument, and playback for fretboards.
+Later: highlight what is playing in notation, a tempo control, a sampled
+instrument, and playback for fretboards.
+
+## Decouple note input from the staff (open)
+
+Today the staff decides how notes are written: note names (`C#4`) on standard
+staves, MIDI numbers (`61`) on `staff chromatic`. The two should be
+independent, so either kind of staff accepts either kind of input:
+
+- MIDI numbers on a standard staff, spelled from the key signature (61 is C♯
+  in D major, D♭ in A♭ major).
+- Note names on a chromatic staff, which only needs their pitch.
+
+Ideally the parser tells which one a note is by itself: a bare number is MIDI,
+a letter is a note name. Tab's `fret/string` notes need care, since they are
+numbers too.

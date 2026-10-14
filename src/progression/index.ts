@@ -16,8 +16,8 @@
 // added intervals 7 (major 7th), b7, 9, #11, ... The first chord of a
 // progression with no root is I.<quality>, e.g. I.m(11).
 //
-//   tempo 100                   quarter notes per minute, for playback
-//   time 3/4                    beats per bar, for playback (default 4/4)
+//   tempo 100                   quarter notes per minute, shown and played
+//   time 3/4                    beats per bar, shown and played (default 4/4)
 //
 // Playback follows repeats and endings. A progression with no root plays as
 // if it started on C.

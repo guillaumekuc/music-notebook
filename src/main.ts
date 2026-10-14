@@ -42,13 +42,27 @@ const viewKey = (type: SnippetType) => `music-notebook:view:${type}`;
 const OLD_NOTE_VIEW_KEY = 'music-notebook:note-view';
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 
+// The examples menu, grouped by snippet type.
+const EXAMPLE_GROUPS: [SnippetType, string][] = [
+  ['fretboard', 'Fretboard'],
+  ['notation', 'Notation'],
+  ['progression', 'Chord progression'],
+  ['markdown', 'Markdown'],
+];
+function exampleOptions(): string {
+  return EXAMPLE_GROUPS.map(([type, label]) => {
+    const options = EXAMPLES.map((e, i) => ((e.type ?? 'fretboard') === type ? `<option value="${i}">${e.name}</option>` : '')).join('');
+    return options ? `<optgroup label="${label}">${options}</optgroup>` : '';
+  }).join('');
+}
+
 const app = document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML = `
   <header class="app-header">
     <button type="button" id="library-toggle" class="btn only-narrow" aria-label="Open library">${icons.library} Library</button>
     <div>
       <h1>Music Notebook</h1>
-      <p>Quick musical notes: fretboard diagrams, notation and Markdown, rendered as you type.</p>
+      <p>Quick musical notes: fretboard diagrams, notation, chord progressions and Markdown, rendered as you type.</p>
     </div>
   </header>
 
@@ -100,7 +114,7 @@ app.innerHTML = `
           <label class="field">
             <select id="examples" aria-label="New snippet from example">
               <option value="">New from example…</option>
-              ${EXAMPLES.map((e, i) => `<option value="${i}">${e.name}</option>`).join('')}
+              ${exampleOptions()}
             </select>
           </label>
           <button type="button" id="copy-link" class="btn btn-small">Copy share link</button>
@@ -173,7 +187,7 @@ C4/h~, C4/q         tie
             <h3>Settings</h3>
             <pre>root A                   the root the first chord relates to (optional)
 width 700                grid width in px
-tempo 100  time 3/4      for Play: quarter notes per minute, beats per bar
+tempo 100  time 3/4      quarter notes per minute, beats per bar (shown, and used by Play)
 section Verse            a label for the rows that follow</pre>
             <h3>Bars</h3>
             <pre>| Am | C | G  F |        one row; | separates bars
@@ -260,6 +274,7 @@ const noteView = new NoteView(note, library, {
     codeInput.value = setTask(codeInput.value, index, checked);
     onCodeEdited();
   },
+  play: playBlock,
 });
 
 // The open snippet: a library snippet (currentId), or a draft from a share link.
@@ -287,6 +302,12 @@ function setType(type: SnippetType) {
   showView();
   codeInput.spellcheck = type === 'markdown';
   codeInput.setAttribute('aria-label', CODE_LABEL[type]);
+  clearDrawing();
+}
+
+// Forgets the last drawing, so a snippet that doesn't render shows its error
+// rather than another snippet's drawing.
+function clearDrawing() {
   player.stop();
   current?.destroy();
   current = null;
@@ -336,7 +357,7 @@ function renderGrid() {
 function showDrawing(el: Element, width: number, height: number) {
   currentSize = { width, height };
   stage.replaceChildren(el);
-  stage.classList.remove('stale');
+  stage.classList.remove('stale', 'empty');
   setButtonsEnabled(true);
   setStatus(`Rendered · ${width} × ${height}px`);
 }
@@ -344,6 +365,8 @@ function showDrawing(el: Element, width: number, height: number) {
 // Keeps the last good render visible, dimmed, so typing isn't jarring.
 function showRenderError(e: unknown, hasPrevious: boolean) {
   stage.classList.toggle('stale', hasPrevious);
+  // With nothing drawn yet, the error alone is clearer than an empty card.
+  stage.classList.toggle('empty', !hasPrevious);
   setStatus(e instanceof Error ? e.message : String(e), 'error');
 }
 
@@ -359,27 +382,51 @@ function setButtonsEnabled(enabled: boolean) {
   playButton.disabled = !enabled;
 }
 
+// Where the music playing is drawn: the stage, or a block in a note.
+let playingIn: HTMLElement | null = null;
+
 function showPlaying(playing: boolean) {
-  playButton.innerHTML = playing ? `${icons.stop} Stop` : `${icons.play} Play`;
-  if (!playing) showPlayingBar(null);
+  playButton.innerHTML = playing && playingIn === stage ? `${icons.stop} Stop` : `${icons.play} Play`;
+  for (const button of note.querySelectorAll<HTMLElement>('.block-play')) {
+    const on = playing && button.closest('.music-block') === playingIn;
+    button.innerHTML = on ? icons.stop : icons.play;
+    button.title = on ? 'Stop' : 'Play';
+    button.setAttribute('aria-label', button.title);
+  }
+  if (!playing) {
+    showPlayingBar(null);
+    playingIn = null;
+  }
 }
 
 // Highlights the progression bar being played.
 function showPlayingBar(bar: number | null) {
-  stage.querySelectorAll('[data-bar].playing').forEach((el) => el.classList.remove('playing'));
-  if (bar !== null) stage.querySelector(`[data-bar="${bar}"]`)?.classList.add('playing');
+  document.querySelectorAll('[data-bar].playing').forEach((el) => el.classList.remove('playing'));
+  if (bar !== null) playingIn?.querySelector(`[data-bar="${bar}"]`)?.classList.add('playing');
 }
 
-function togglePlay() {
-  if (player.playing) return player.stop();
+function playMusic(kind: SnippetType, code: string, where: HTMLElement) {
   try {
-    const performance = currentType === 'progression' ? performProgression(codeInput.value) : performNotation(codeInput.value);
+    const performance = kind === 'progression' ? performProgression(code) : performNotation(code);
     if (!performance.events.length) return setStatus('Nothing to play', 'info');
     player.play(performance);
+    playingIn = where;
     showPlaying(true);
   } catch (e) {
     setStatus(e instanceof Error ? e.message : String(e), 'error');
   }
+}
+
+function togglePlay() {
+  if (player.playing) return player.stop();
+  playMusic(currentType, codeInput.value, stage);
+}
+
+// A play button on a block in a note: plays it, or stops it if it's playing.
+function playBlock(kind: 'notation' | 'progression', code: string, block: HTMLElement) {
+  const again = player.playing && playingIn === block;
+  player.stop();
+  if (!again) playMusic(kind, code, block);
 }
 
 // --- Opening and saving snippets ---
@@ -407,6 +454,7 @@ function openSnippet(id: string) {
   flushSave();
   currentId = id;
   setType(s.type);
+  clearDrawing();
   codeInput.value = s.code;
   render();
   meta.show(s);
@@ -421,6 +469,7 @@ function openDraft({ code, type }: SharedCode) {
   currentId = null;
   draftName = DRAFT_NAME[type];
   setType(type);
+  clearDrawing();
   codeInput.value = code;
   render();
   meta.show({ id: null, name: draftName, folderId: null, tags: [] });

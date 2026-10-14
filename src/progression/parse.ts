@@ -51,6 +51,8 @@ export interface Progression {
   rows: Row[];
   tempo: number; // quarter notes per minute
   barQuarters: number; // quarter notes in a bar
+  // What the grid shows above it: the tempo and time when they were written.
+  marks: { tempo?: number; time?: string };
 }
 
 export const DEFAULT_TEMPO = 100;
@@ -105,6 +107,7 @@ export function parseProgression(code: string): Progression {
   let width = 700;
   let tempo = DEFAULT_TEMPO;
   let barQuarters = 4;
+  const marks: Progression['marks'] = {};
   let start: Root | null = null;
   let section: string | undefined;
   const rows: Row[] = [];
@@ -133,12 +136,14 @@ export function parseProgression(code: string): Progression {
       const t = Number(rest);
       if (!Number.isFinite(t) || t < 20 || t > 400) fail('Tempo must be 20–400 (quarter notes per minute)');
       tempo = t;
+      marks.tempo = t;
       return;
     }
     if (word === 'time') {
       const m = rest.match(/^(\d+)\/(1|2|4|8|16)$/);
       if (!m || Number(m[1]) < 1) fail('Time must look like 4/4, 3/4 or 6/8');
       barQuarters = (Number(m![1]) * 4) / Number(m![2]);
+      marks.time = rest;
       return;
     }
     if (word === 'root') {
@@ -221,7 +226,7 @@ export function parseProgression(code: string): Progression {
   });
 
   if (!rows.length) throw new ProgressionError('No bars yet: write chords between bar lines, e.g. | Am | bIII.M | F |');
-  return { width, rows, tempo, barQuarters };
+  return { width, rows, tempo, barQuarters, marks };
 }
 
 // The chord a bar ends on, for a `%` that repeats it.

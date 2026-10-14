@@ -155,24 +155,6 @@ export function setTask(text: string, index: number, checked: boolean): string {
   return text;
 }
 
-// The note's text without Markdown syntax, for list previews.
-export function markdownExcerpt(text: string, length = 140): string {
-  const plain = text
-    .replace(FRONT_MATTER, '')
-    .replace(/```[\s\S]*?```/g, ' ')
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
-    .replace(/\[\[([^[\]|]+)\|?([^[\]]*)\]\]/g, (_, target: string, label: string) => label || target)
-    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/^\s{0,3}(#{1,6}|>|[-*+]|\d+\.)\s+/gm, '')
-    .replace(/^\[[ xX]\]\s+/gm, '')
-    .replace(/^\s*\|?[\s:|-]*-[\s:|-]*\|?\s*$/gm, ' ')
-    .replace(/[*_`~|]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  return plain.length > length ? `${plain.slice(0, length).trimEnd()}…` : plain;
-}
-
 export function wordCount(text: string): number {
   return text.replace(FRONT_MATTER, '').match(/\S+/g)?.length ?? 0;
 }

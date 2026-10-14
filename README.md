@@ -40,6 +40,7 @@ voice D5/q, C#5, B4, A4
 - [ ] scales                  task boxes can be ticked in the preview
 ````
 
+- Notation and progression blocks in a note have a play button.
 - Paste or drop an image into the editor to add it to the note. Images are kept
   with the library and referenced as `attachments/<name>`.
 - Ctrl/Cmd+B bold, Ctrl/Cmd+I italic, Ctrl/Cmd+K link; Enter continues a list
@@ -73,7 +74,7 @@ storage, so the app works offline and needs no server or account.
   and folders onto a folder to move them. Double-click a folder to rename it.
   Deleting a folder moves its contents up a level, and every delete can be undone.
 - **Find:** search matches names, tags and code. Click tag chips to filter.
-  Search and filter results show a thumbnail of each snippet.
+  Results show each snippet's type, name, folder, tags and when it was edited.
 - **Use on several devices (Chrome/Edge):** click **Connect folder…** and pick a
   folder inside Dropbox, OneDrive, iCloud Drive or a git repo. The library is
   mirrored there as real directories, `.fret`, `.notation`, `.progression` and
@@ -188,8 +189,8 @@ one and the other is worked out; the two can be mixed freely.
 ```
 root A                         the root the first chord relates to (optional)
 width 700                      grid width in px
-tempo 100                      quarter notes per minute, for Play
-time 3/4                       beats per bar, for Play (default 4/4)
+tempo 100                      quarter notes per minute (shown, and used by Play)
+time 3/4                       beats per bar (shown, and used by Play; default 4/4)
 section A                      a label for the rows that follow
 |: I.m(b7) | bIII.M | bVII.M | IV.M(b7) |
 | Am  G | F  E7 |[1 Am | E7 :|[2 Am | % ||

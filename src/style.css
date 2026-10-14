@@ -174,16 +174,23 @@ select,
   display: flex;
   align-items: center;
   justify-content: center;
+  /* A drawing wider than the stage starts at its left edge, so it can be
+     scrolled to in full instead of overflowing on both sides. */
+  justify-content: safe center;
   transition: opacity 0.15s;
 }
 
 /* The progression bar being played. */
-.stage [data-bar].playing {
+:is(.stage, .music-block) [data-bar].playing {
   fill: #fdeaa7;
 }
 
 .stage.stale {
   opacity: 0.4;
+}
+
+.stage.empty {
+  display: none;
 }
 
 .stage :is(canvas, svg) {
@@ -383,6 +390,31 @@ select,
   border: 1px solid var(--border);
   border-radius: 6px;
   overflow-x: auto;
+  position: relative;
+}
+
+/* Play button on notation and progression blocks. Drawings are black on a
+   light card, so it is too, in either theme. */
+.note .block-play {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid #ccc;
+  border-radius: 50%;
+  background: #fff;
+  color: #222;
+  cursor: pointer;
+  opacity: 0.75;
+}
+
+.note .block-play:hover,
+.note .block-play:focus-visible {
+  opacity: 1;
 }
 
 .note .music-block :is(img, svg) {

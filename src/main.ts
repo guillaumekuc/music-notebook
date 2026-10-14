@@ -8,7 +8,7 @@ import type { SnippetType } from './storage/types';
 import { setTask, wordCount } from './markdown';
 import { loadNotationFonts, performNotation, renderNotation, standaloneSvg } from './notation';
 import { Player } from './audio/synth';
-import { renderProgression } from './progression';
+import { performProgression, renderProgression } from './progression';
 import { NoteView } from './ui/noteView';
 import { attachMarkdownEditor } from './ui/markdownEditor';
 import { Sidebar } from './ui/sidebar';
@@ -70,7 +70,7 @@ app.innerHTML = `
             </label>
           </div>
           <div class="actions" data-for="fretboard notation progression">
-            <button type="button" id="play" class="btn" data-for="notation" title="Play (Ctrl+Space)"></button>
+            <button type="button" id="play" class="btn" data-for="notation progression" title="Play (Ctrl+Space)"></button>
             <label class="field">Scale
               <select id="scale">
                 <option value="1">1×</option>
@@ -173,6 +173,7 @@ C4/h~, C4/q         tie
             <h3>Settings</h3>
             <pre>root A                   the root the first chord relates to (optional)
 width 700                grid width in px
+tempo 100  time 3/4      for Play: quarter notes per minute, beats per bar
 section Verse            a label for the rows that follow</pre>
             <h3>Bars</h3>
             <pre>| Am | C | G  F |        one row; | separates bars
@@ -360,12 +361,19 @@ function setButtonsEnabled(enabled: boolean) {
 
 function showPlaying(playing: boolean) {
   playButton.innerHTML = playing ? `${icons.stop} Stop` : `${icons.play} Play`;
+  if (!playing) showPlayingBar(null);
+}
+
+// Highlights the progression bar being played.
+function showPlayingBar(bar: number | null) {
+  stage.querySelectorAll('[data-bar].playing').forEach((el) => el.classList.remove('playing'));
+  if (bar !== null) stage.querySelector(`[data-bar="${bar}"]`)?.classList.add('playing');
 }
 
 function togglePlay() {
   if (player.playing) return player.stop();
   try {
-    const performance = performNotation(codeInput.value);
+    const performance = currentType === 'progression' ? performProgression(codeInput.value) : performNotation(codeInput.value);
     if (!performance.events.length) return setStatus('Nothing to play', 'info');
     player.play(performance);
     showPlaying(true);
@@ -678,6 +686,7 @@ function wireEditor() {
   saveSvgButton.addEventListener('click', saveSvg);
   playButton.addEventListener('click', togglePlay);
   player.onStop = () => showPlaying(false);
+  player.onCue = (bar) => showPlayingBar(bar);
   saveMdButton.addEventListener('click', saveMarkdown);
   viewSelect.addEventListener('change', () => setView(viewSelect.value));
   attachMarkdownEditor(codeInput, { active: () => currentType === 'markdown', saveImage });
@@ -696,7 +705,7 @@ function wireEditor() {
   $('#backdrop').addEventListener('click', () => document.body.classList.remove('library-open'));
 
   document.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === ' ' && currentType === 'notation') {
+    if ((e.ctrlKey || e.metaKey) && e.key === ' ' && (currentType === 'notation' || currentType === 'progression')) {
       e.preventDefault();
       if (!playButton.disabled) togglePlay();
       return;

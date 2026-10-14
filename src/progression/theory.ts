@@ -188,3 +188,22 @@ export function buildSuffix(quality: Quality, addedList: string[]): string {
 }
 
 const prettyAdded = (a: string) => a.replace('bb', '𝄫').replace('b', '♭').replace('#', '♯');
+
+// --- Sound ---
+
+const TRIAD: Record<Quality, number[]> = { M: [0, 4, 7], m: [0, 3, 7], d: [0, 3, 6], A: [0, 4, 8] };
+const DEGREE_SEMITONES: Record<string, number> = { '2': 2, '3': 4, '4': 5, '5': 7, '6': 9, '7': 11, '9': 14, '11': 17, '13': 21 };
+
+// The semitones above the root a chord sounds: its triad (just root and 5th
+// for sus and power chords) and its added intervals. An altered 5th replaces
+// the triad's.
+export function chordTones(quality: Quality | null, added: string[]): number[] {
+  let tones = quality ? [...TRIAD[quality]] : [0, 7];
+  if (added.some((a) => /^[#b]5$/.test(a))) tones = tones.filter((t) => t !== 6 && t !== 7 && t !== 8);
+  for (const a of added) {
+    const m = a.match(/^(bb|b|#)?(\d+)$/);
+    if (!m || !(m[2] in DEGREE_SEMITONES)) continue;
+    tones.push(DEGREE_SEMITONES[m[2]] + (m[1] === 'bb' ? -2 : m[1] === 'b' ? -1 : m[1] === '#' ? 1 : 0));
+  }
+  return [...new Set(tones)].sort((a, b) => a - b);
+}

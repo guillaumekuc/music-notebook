@@ -2,7 +2,7 @@
 // symbol and chord relationship (see index.ts for the syntax).
 
 import {
-  CHORD, QUALITIES, ROMANS, addedLabel, analyzeSuffix, buildSuffix, mod12, normalizeAdded,
+  CHORD, QUALITIES, ROMANS, addedLabel, analyzeSuffix, buildSuffix, chordTones, mod12, normalizeAdded,
   parseNumeral, parseRoot, pitchClass, prettyChord, rootName, transpose,
   type Numeral, type Quality, type Root,
 } from './theory';
@@ -20,6 +20,15 @@ export interface Slot {
   span: number;
   symbol?: string; // e.g. `C7`; missing when the root isn't known
   label?: string; // the CR, e.g. `m ♭III M (♭7)`
+  sound?: Sound; // for chords
+}
+
+// What a chord sounds like, as pitch classes and semitones. A progression with
+// no root sounds as if it started on C.
+export interface Sound {
+  root: number;
+  tones: number[]; // semitones above the root
+  bass: number;
 }
 
 export interface Bar {
@@ -40,16 +49,21 @@ export interface Row {
 export interface Progression {
   width: number;
   rows: Row[];
+  tempo: number; // quarter notes per minute
+  barQuarters: number; // quarter notes in a bar
 }
+
+export const DEFAULT_TEMPO = 100;
 
 // A chord as worked out: what it relates to the next one with.
 interface Resolved {
   root: Root | null;
   quality: Quality | null;
+  pitch: number; // the sounding root, known even when `root` isn't
 }
 
 type ChordToken =
-  | { kind: 'absolute'; root: Root; quality: Quality | null; added: string[]; text: string }
+  | { kind: 'absolute'; root: Root; quality: Quality | null; added: string[]; text: string; bass: Root | null }
   | { kind: 'relative'; numeral: Numeral; sharp: boolean; quality: Quality; added: string[] };
 
 // `bIII.M(9)`, `V.M(b7)`, `I.m(11)`.
@@ -69,10 +83,10 @@ function parseChord(text: string, fail: (msg: string) => never): ChordToken {
     fail(`Can't read "${text}": a chord relationship is interval.quality, e.g. I.m, bIII.M or V.M(b7), with a quality of ${QUALITIES.join(' ')}`);
   }
   if (!CHORD.test(text)) fail(`Unknown chord "${text}"`);
-  const m = text.match(/^([A-G][#b♯♭]?)(.*?)(?:\/[A-G][#b♯♭]?)?$/)!;
+  const m = text.match(/^([A-G][#b♯♭]?)(.*?)(?:\/([A-G][#b♯♭]?))?$/)!;
   const analysis = analyzeSuffix(m[2]);
   if (!analysis) fail(`Can't read the chord "${text}"`);
-  return { kind: 'absolute', root: parseRoot(m[1])!, ...analysis, text };
+  return { kind: 'absolute', root: parseRoot(m[1])!, ...analysis, text, bass: m[3] ? parseRoot(m[3]) : null };
 }
 
 // Bar lines, longest first, with an optional ending (`[1`) after them.
@@ -89,6 +103,8 @@ function barLines(sep: string): { right: BarLine; left: BarLine; count?: number 
 
 export function parseProgression(code: string): Progression {
   let width = 700;
+  let tempo = DEFAULT_TEMPO;
+  let barQuarters = 4;
   let start: Root | null = null;
   let section: string | undefined;
   const rows: Row[] = [];
@@ -111,6 +127,18 @@ export function parseProgression(code: string): Progression {
       const w = Number(rest);
       if (!Number.isFinite(w) || w < MIN_WIDTH || w > MAX_WIDTH) fail(`Width must be ${MIN_WIDTH}–${MAX_WIDTH}`);
       width = w;
+      return;
+    }
+    if (word === 'tempo') {
+      const t = Number(rest);
+      if (!Number.isFinite(t) || t < 20 || t > 400) fail('Tempo must be 20–400 (quarter notes per minute)');
+      tempo = t;
+      return;
+    }
+    if (word === 'time') {
+      const m = rest.match(/^(\d+)\/(1|2|4|8|16)$/);
+      if (!m || Number(m[1]) < 1) fail('Time must look like 4/4, 3/4 or 6/8');
+      barQuarters = (Number(m![1]) * 4) / Number(m![2]);
       return;
     }
     if (word === 'root') {
@@ -160,7 +188,8 @@ export function parseProgression(code: string): Progression {
         const previous = bars[bars.length - 1] ?? rows[rows.length - 1]?.bars.slice(-1)[0];
         if (!previous) fail('% repeats the previous bar, but this is the first one');
         bar.simile = true;
-        prev = previous.simile ? prev : lastChord(previous) ?? prev;
+        bar.slots = previous.slots; // drawn as %, but played again
+        prev = lastChord(previous) ?? prev;
       } else {
         for (const t of tokens) {
           if (t === '%') fail('% stands for a whole bar, on its own between bar lines');
@@ -192,7 +221,7 @@ export function parseProgression(code: string): Progression {
   });
 
   if (!rows.length) throw new ProgressionError('No bars yet: write chords between bar lines, e.g. | Am | bIII.M | F |');
-  return { width, rows };
+  return { width, rows, tempo, barQuarters };
 }
 
 // The chord a bar ends on, for a `%` that repeats it.
@@ -207,6 +236,7 @@ function lastChord(bar: Bar): Resolved | undefined {
 function resolve(token: ChordToken, prev: Resolved | null, start: Root | null): { slot: Slot; resolved: Resolved } {
   const slot: Slot = { kind: 'chord', span: 1 };
   const from = prev ? prev.root : start;
+  const fromPitch = prev ? prev.pitch : start ? pitchClass(start) : 0;
 
   let root: Root | null;
   let semitones: number | null;
@@ -229,5 +259,8 @@ function resolve(token: ChordToken, prev: Resolved | null, start: Root | null): 
     const interval = semitones ? `${ROMANS[semitones]} ` : '';
     slot.label = `${interval}${to}${added}`;
   }
-  return { slot, resolved: { root, quality: token.quality } };
+  const pitch = token.kind === 'absolute' ? pitchClass(token.root) : mod12(fromPitch + token.numeral.semitones);
+  const bass = token.kind === 'absolute' && token.bass ? pitchClass(token.bass) : pitch;
+  slot.sound = { root: pitch, tones: chordTones(token.quality, token.added), bass };
+  return { slot, resolved: { root, quality: token.quality, pitch } };
 }

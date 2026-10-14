@@ -287,6 +287,12 @@ function setType(type: SnippetType) {
   showView();
   codeInput.spellcheck = type === 'markdown';
   codeInput.setAttribute('aria-label', CODE_LABEL[type]);
+  clearDrawing();
+}
+
+// Forgets the last drawing, so a snippet that doesn't render shows its error
+// rather than another snippet's drawing.
+function clearDrawing() {
   player.stop();
   current?.destroy();
   current = null;
@@ -336,7 +342,7 @@ function renderGrid() {
 function showDrawing(el: Element, width: number, height: number) {
   currentSize = { width, height };
   stage.replaceChildren(el);
-  stage.classList.remove('stale');
+  stage.classList.remove('stale', 'empty');
   setButtonsEnabled(true);
   setStatus(`Rendered · ${width} × ${height}px`);
 }
@@ -344,6 +350,8 @@ function showDrawing(el: Element, width: number, height: number) {
 // Keeps the last good render visible, dimmed, so typing isn't jarring.
 function showRenderError(e: unknown, hasPrevious: boolean) {
   stage.classList.toggle('stale', hasPrevious);
+  // With nothing drawn yet, the error alone is clearer than an empty card.
+  stage.classList.toggle('empty', !hasPrevious);
   setStatus(e instanceof Error ? e.message : String(e), 'error');
 }
 
@@ -407,6 +415,7 @@ function openSnippet(id: string) {
   flushSave();
   currentId = id;
   setType(s.type);
+  clearDrawing();
   codeInput.value = s.code;
   render();
   meta.show(s);
@@ -421,6 +430,7 @@ function openDraft({ code, type }: SharedCode) {
   currentId = null;
   draftName = DRAFT_NAME[type];
   setType(type);
+  clearDrawing();
   codeInput.value = code;
   render();
   meta.show({ id: null, name: draftName, folderId: null, tags: [] });

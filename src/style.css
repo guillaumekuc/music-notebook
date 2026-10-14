@@ -189,6 +189,10 @@ select,
   opacity: 0.4;
 }
 
+.stage.empty {
+  display: none;
+}
+
 .stage :is(canvas, svg) {
   display: block;
   flex: none;

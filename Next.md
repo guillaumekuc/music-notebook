@@ -86,7 +86,6 @@ Later:
 - A slash bass on CR tokens (`V.M/3`).
 - Replace the `| Dm7 | G7 |` chord charts in Markdown notes with progression
   blocks.
-- Play a progression (see Sound preview).
 
 ## Sound preview
 
@@ -95,6 +94,10 @@ synth with the Web Audio API (`src/audio/synth.ts`), fed by
 `src/notation/playback.ts`. Repeats are played once, and tab plays at written
 pitch (an octave above a guitar's).
 
-Still to do: play ```notation blocks in Markdown notes, highlight what is
-playing, honour repeats, a tempo control, a sampled instrument, and playback
-for chord progressions and fretboards.
+Chord progressions play too, following repeats and endings, with each chord
+voiced close to the one before (as in Chordex) and the playing bar
+highlighted.
+
+Still to do: play ```notation and ```progression blocks in Markdown notes,
+highlight what is playing in notation, honour repeats in notation, a tempo
+control, a sampled instrument, and playback for fretboards.

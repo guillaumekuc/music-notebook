@@ -9,8 +9,8 @@ export interface Folder {
   syncedAt?: number;
 }
 
-export type SnippetType = 'fretboard' | 'markdown' | 'notation';
-export const SNIPPET_TYPES: SnippetType[] = ['fretboard', 'markdown', 'notation'];
+export type SnippetType = 'fretboard' | 'markdown' | 'notation' | 'progression';
+export const SNIPPET_TYPES: SnippetType[] = ['fretboard', 'markdown', 'notation', 'progression'];
 
 export interface Snippet {
   id: string;

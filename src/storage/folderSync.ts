@@ -5,7 +5,8 @@
 //   fretboard syntax, so every file is still valid fretboard code;
 // - Markdown notes are `<name>.md`, with the header as YAML front matter, which
 //   Markdown editors and previewers understand;
-// - music notation is `<name>.notation`, with the same `#` comment header.
+// - music notation is `<name>.notation` and chord progressions are
+//   `<name>.progression`, with the same `#` comment header.
 // Images pasted into notes go in an `attachments` directory at the top.
 // Put the directory in Dropbox/OneDrive/a git repo and the library follows you
 // to other devices.
@@ -42,14 +43,14 @@ interface ParsedFile {
 }
 
 const HANDLE_KEY = 'syncHandle';
-const EXT: Record<SnippetType, string> = { fretboard: '.fret', markdown: '.md', notation: '.notation' };
+const EXT: Record<SnippetType, string> = { fretboard: '.fret', markdown: '.md', notation: '.notation', progression: '.progression' };
 const LOCAL_CHANGE_DELAY_MS = 1500;
 const POLL_INTERVAL_MS = 60_000;
 
 const key = (parts: string[]) => parts.join('/');
 const depth = (path: string) => (path ? path.split('/').length : 0);
 const dirOf = (path: string) => path.split('/').slice(0, -1);
-const stripExt = (name: string) => name.replace(/\.(fret|md|notation)$/i, '');
+const stripExt = (name: string) => name.replace(/\.(fret|md|notation|progression)$/i, '');
 const baseName = (path: string) => stripExt(path.split('/').pop()!);
 
 const IMAGE_TYPES: Record<string, string> = {
@@ -67,6 +68,7 @@ function typeOfFile(name: string): SnippetType | null {
   if (lower.endsWith(EXT.fretboard)) return 'fretboard';
   if (lower.endsWith(EXT.markdown)) return 'markdown';
   if (lower.endsWith(EXT.notation)) return 'notation';
+  if (lower.endsWith(EXT.progression)) return 'progression';
   return null;
 }
 

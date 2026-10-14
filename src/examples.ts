@@ -114,6 +114,31 @@ staff bass
 voice (G2 D3)/1 | (G2 D3 G3)/1 |]`,
   },
   {
+    name: 'Progression: chord symbols',
+    type: 'progression',
+    code: `# Chord symbols; each cell also shows the relationship from the chord before.
+| Dm7 | G7 | Cmaj7 | % |
+| Em7  A7 | Dm7  G7 | C6 / / G7 | C |]`,
+  },
+  {
+    name: 'Progression: relationships only',
+    type: 'progression',
+    code: `# No root: only the relationships show. Add a line like "root A" to name the chords.
+| I.m | bVII.M | bVI.M | V.M(b7) :|`,
+  },
+  {
+    name: 'Progression: mixed, with sections',
+    type: 'progression',
+    code: `# Symbols and relationships can be mixed; the other one is worked out.
+root A
+section A
+|: I.m(b7) | bIII.M | bVII.M | IV.M(b7) |
+| Am  G | F  E7 |[1 Am | E7 :|[2 Am | % ||
+section B
+| Dm | V.M(b7) | Cmaj7 | bII.M |
+| Bm7b5 | E7 | N.C. | E7 :|x2`,
+  },
+  {
     name: 'Notation: bass line',
     type: 'notation',
     code: `clef bass

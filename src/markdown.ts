@@ -57,9 +57,9 @@ interface WikiLinkToken {
 
 // --- Renderer ---
 
-// ```fretboard and ```notation blocks in the note being rendered; the note
+// ```fretboard, ```notation and ```progression blocks in the note being rendered; the note
 // view draws them into the placeholders.
-export type MusicBlockKind = 'fretboard' | 'notation';
+export type MusicBlockKind = 'fretboard' | 'notation' | 'progression';
 export interface MusicBlock {
   kind: MusicBlockKind;
   code: string;
@@ -72,7 +72,7 @@ const marked = new Marked({
   renderer: {
     code({ text, lang }: Tokens.Code) {
       const kind = lang?.trim().toLowerCase();
-      if (kind !== 'fretboard' && kind !== 'notation') return false;
+      if (kind !== 'fretboard' && kind !== 'notation' && kind !== 'progression') return false;
       musicBlocks.push({ kind, code: text });
       return `<div class="music-block" data-block="${musicBlocks.length - 1}"></div>\n`;
     },

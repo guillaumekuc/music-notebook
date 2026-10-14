@@ -196,6 +196,9 @@ show notes=5/6,7/6     fretboard syntax
 \`\`\`notation            music notation, in the
 voice C5/q, B4, A4, G4 notation syntax
 \`\`\`
+\`\`\`progression         a chord progression grid, in
+| Am | bIII.M | F |     the progression syntax
+\`\`\`
 [[G major]]             link to a snippet by name
 [[G major|the shape]]   … with your own label</pre>
             <p>A single line break is kept as a line break. Paste or drop an image to add it.

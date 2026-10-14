@@ -1,5 +1,5 @@
 // Works out what a parsed piece sounds like: every note with its MIDI pitches,
-// start and length in seconds. Repeats are played once.
+// start and length in seconds. `|: :|` repeats are played twice.
 
 import { lastDuration, type Piece, type Token } from './parse';
 import { isRestToken, stateAt, tupletGroups } from './render';
@@ -74,6 +74,26 @@ function sound(tok: Token, duration: string, strings: number[], percussion: bool
   return { midi, quarters: quarters(duration, dots) };
 }
 
+// The measures in the order they are played: a `:|` goes back to the last
+// `|:` (or the start) once.
+function measureOrder(piece: Piece): number[] {
+  const order: number[] = [];
+  const repeated = new Set<number>();
+  let start = 0;
+  for (let m = 0; m < piece.measureCount; m++) {
+    if (piece.barBegin.get(m) === 'repeatBegin') start = m;
+    order.push(m);
+    if (piece.barEnd.get(m) !== 'repeatEnd') continue;
+    if (repeated.has(m)) {
+      start = m + 1;
+    } else {
+      repeated.add(m);
+      m = start - 1;
+    }
+  }
+  return order;
+}
+
 export function perform(piece: Piece): Performance {
   // Each voice's sounds, by measure.
   const voices = piece.staves.flatMap((staff, si) => {
@@ -97,14 +117,19 @@ export function perform(piece: Piece): Performance {
 
   // Measures are as long as their time signature, so voices stay together,
   // but a short first or last measure (a pickup) is played as written.
-  const starts: number[] = [];
-  let at = 0;
+  const lengths: number[] = [];
   for (let m = 0; m < piece.measureCount; m++) {
-    starts.push(at);
     const written = Math.max(0, ...voices.map((v) => (v[m] ?? []).reduce((sum, s) => sum + s.quarters, 0)));
     const full = measureQuarters(stateAt(piece, m).time);
     const edge = m === 0 || m === piece.measureCount - 1;
-    at += !written ? full : edge ? written : Math.max(written, full);
+    lengths.push(!written ? full : edge ? written : Math.max(written, full));
+  }
+  const order = measureOrder(piece);
+  const starts: number[] = [];
+  let at = 0;
+  for (const m of order) {
+    starts.push(at);
+    at += lengths[m];
   }
 
   const tempo = piece.tempo;
@@ -115,9 +140,9 @@ export function perform(piece: Piece): Performance {
   for (const voice of voices) {
     // A note tied over from the one before lengthens it instead of sounding again.
     let tied: NoteEvent | null = null;
-    voice.forEach((measure, m) => {
-      let t = starts[m];
-      for (const s of measure) {
+    order.forEach((m, k) => {
+      let t = starts[k];
+      for (const s of voice[m] ?? []) {
         const same = tied && tied.midi.length === s.midi.length && tied.midi.every((n, i) => n === s.midi[i]);
         if (tied && same) tied.duration += s.quarters * perQuarter;
         else if (s.midi.length) {

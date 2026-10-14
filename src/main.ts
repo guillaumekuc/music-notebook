@@ -274,6 +274,7 @@ const noteView = new NoteView(note, library, {
     codeInput.value = setTask(codeInput.value, index, checked);
     onCodeEdited();
   },
+  play: playBlock,
 });
 
 // The open snippet: a library snippet (currentId), or a draft from a share link.
@@ -381,27 +382,51 @@ function setButtonsEnabled(enabled: boolean) {
   playButton.disabled = !enabled;
 }
 
+// Where the music playing is drawn: the stage, or a block in a note.
+let playingIn: HTMLElement | null = null;
+
 function showPlaying(playing: boolean) {
-  playButton.innerHTML = playing ? `${icons.stop} Stop` : `${icons.play} Play`;
-  if (!playing) showPlayingBar(null);
+  playButton.innerHTML = playing && playingIn === stage ? `${icons.stop} Stop` : `${icons.play} Play`;
+  for (const button of note.querySelectorAll<HTMLElement>('.block-play')) {
+    const on = playing && button.closest('.music-block') === playingIn;
+    button.innerHTML = on ? icons.stop : icons.play;
+    button.title = on ? 'Stop' : 'Play';
+    button.setAttribute('aria-label', button.title);
+  }
+  if (!playing) {
+    showPlayingBar(null);
+    playingIn = null;
+  }
 }
 
 // Highlights the progression bar being played.
 function showPlayingBar(bar: number | null) {
-  stage.querySelectorAll('[data-bar].playing').forEach((el) => el.classList.remove('playing'));
-  if (bar !== null) stage.querySelector(`[data-bar="${bar}"]`)?.classList.add('playing');
+  document.querySelectorAll('[data-bar].playing').forEach((el) => el.classList.remove('playing'));
+  if (bar !== null) playingIn?.querySelector(`[data-bar="${bar}"]`)?.classList.add('playing');
 }
 
-function togglePlay() {
-  if (player.playing) return player.stop();
+function playMusic(kind: SnippetType, code: string, where: HTMLElement) {
   try {
-    const performance = currentType === 'progression' ? performProgression(codeInput.value) : performNotation(codeInput.value);
+    const performance = kind === 'progression' ? performProgression(code) : performNotation(code);
     if (!performance.events.length) return setStatus('Nothing to play', 'info');
     player.play(performance);
+    playingIn = where;
     showPlaying(true);
   } catch (e) {
     setStatus(e instanceof Error ? e.message : String(e), 'error');
   }
+}
+
+function togglePlay() {
+  if (player.playing) return player.stop();
+  playMusic(currentType, codeInput.value, stage);
+}
+
+// A play button on a block in a note: plays it, or stops it if it's playing.
+function playBlock(kind: 'notation' | 'progression', code: string, block: HTMLElement) {
+  const again = player.playing && playingIn === block;
+  player.stop();
+  if (!again) playMusic(kind, code, block);
 }
 
 // --- Opening and saving snippets ---

@@ -40,6 +40,7 @@ voice D5/q, C#5, B4, A4
 - [ ] scales                  task boxes can be ticked in the preview
 ````
 
+- Notation and progression blocks in a note have a play button.
 - Paste or drop an image into the editor to add it to the note. Images are kept
   with the library and referenced as `attachments/<name>`.
 - Ctrl/Cmd+B bold, Ctrl/Cmd+I italic, Ctrl/Cmd+K link; Enter continues a list

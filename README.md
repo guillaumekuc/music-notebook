@@ -73,7 +73,7 @@ storage, so the app works offline and needs no server or account.
   and folders onto a folder to move them. Double-click a folder to rename it.
   Deleting a folder moves its contents up a level, and every delete can be undone.
 - **Find:** search matches names, tags and code. Click tag chips to filter.
-  Search and filter results show a thumbnail of each snippet.
+  Results show each snippet's type, name, folder, tags and when it was edited.
 - **Use on several devices (Chrome/Edge):** click **Connect folder…** and pick a
   folder inside Dropbox, OneDrive, iCloud Drive or a git repo. The library is
   mirrored there as real directories, `.fret`, `.notation`, `.progression` and

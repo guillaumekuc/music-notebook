@@ -3,8 +3,6 @@ import { FolderSync } from '../storage/folderSync';
 import { exportLibrary, importLibrary } from '../storage/backup';
 import { escapeHtml, timeAgo } from '../util';
 import { icons } from './icons';
-import { notationThumbnail, progressionThumbnail, thumbnail } from './thumbnail';
-import { markdownExcerpt } from '../markdown';
 import type { SnippetType } from '../storage/types';
 import { toast } from './toast';
 
@@ -176,33 +174,11 @@ export class Sidebar {
       const path = lib.folderPath(s.folderId).map((f) => f.name).join(' / ') || 'Library';
       return `
         <button type="button" class="result${s.id === currentId ? ' current' : ''}" data-kind="snippet" data-id="${s.id}">
-          <span class="thumb" data-code-id="${s.id}"></span>
-          <span class="result-name">${escapeHtml(s.name)}</span>
+          <span class="result-name"><span class="row-icon">${icons[TYPE_ICON[s.type]]}</span>${escapeHtml(s.name)}</span>
           <span class="result-meta">${escapeHtml(path)} · ${timeAgo(s.updatedAt)}</span>
           ${s.tags.length ? `<span class="result-tags">${s.tags.map((t) => `<span class="mini-chip">${escapeHtml(t)}</span>`).join('')}</span>` : ''}
         </button>`;
     }).join('')}</div>`;
-
-    // Thumbnails render after the list so typing in search stays responsive.
-    requestAnimationFrame(() => {
-      for (const el of this.body.querySelectorAll<HTMLElement>('.thumb[data-code-id]')) {
-        const s = lib.getSnippet(el.dataset.codeId!);
-        if (s?.type === 'markdown') {
-          el.classList.add('text');
-          el.textContent = markdownExcerpt(s.code) || 'Empty note';
-          continue;
-        }
-        if (s?.type === 'notation' || s?.type === 'progression') {
-          const svg = s.type === 'notation' ? notationThumbnail(s.code) : progressionThumbnail(s.code);
-          if (svg) el.append(svg);
-          else el.classList.add('broken');
-          continue;
-        }
-        const url = s ? thumbnail(s.code) : null;
-        if (url) el.innerHTML = `<img src="${url}" alt="" />`;
-        else el.classList.add('broken');
-      }
-    });
   }
 
   private renderSync(): void {

@@ -52,7 +52,7 @@ export function playOrder(bars: Bar[]): number[] {
 const BASS_LOW = 40; // E2
 const VOICE_LOW = 52; // E3: the lowest upper voice
 const VOICE_HIGH = 76; // E5: the highest upper voice
-const CENTRE = 64;
+const CENTRE = 62;
 
 // Every inversion of a chord in close position, at every octave that fits.
 function voicings(sound: Sound): number[][] {
@@ -74,13 +74,22 @@ function voicings(sound: Sound): number[][] {
   return out;
 }
 
-// How far the voices move, both ways, plus a pull towards the middle so the
-// voicing doesn't drift up or down over a long progression.
+// How far the voices move. With the same number of notes, voices pair up in
+// pitch order (bottom with bottom, top with top), as in Chordex. Otherwise
+// each note goes to the nearest one of the other chord, both ways. A voicing
+// that drifts more than DRIFT from the middle costs extra, so a long
+// progression doesn't wander up or down.
+const DRIFT = 4;
 function cost(next: number[], prev: number[]): number {
-  const near = (n: number, set: number[]) => Math.min(...set.map((m) => Math.abs(n - m)));
-  const moves = next.reduce((s, n) => s + near(n, prev), 0) + prev.reduce((s, n) => s + near(n, next), 0);
+  let moves = 0;
+  if (next.length === prev.length) {
+    next.forEach((n, i) => (moves += Math.abs(n - prev[i])));
+  } else {
+    const near = (n: number, set: number[]) => Math.min(...set.map((m) => Math.abs(n - m)));
+    moves = next.reduce((s, n) => s + near(n, prev), 0) + prev.reduce((s, n) => s + near(n, next), 0);
+  }
   const mean = next.reduce((s, n) => s + n, 0) / next.length;
-  return moves + Math.abs(mean - CENTRE) * 0.5;
+  return moves + 3 * Math.max(0, Math.abs(mean - CENTRE) - DRIFT);
 }
 
 function voice(sound: Sound, prev: number[] | null): number[] {

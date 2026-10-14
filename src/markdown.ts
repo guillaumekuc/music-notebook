@@ -2,6 +2,7 @@ import { Marked, type Tokens } from 'marked';
 import DOMPurify from 'dompurify';
 import { escapeHtml } from './util';
 import { ATTACHMENTS_DIR } from './storage/types';
+import { CHORD, prettyChord } from './progression/theory';
 
 const FRONT_MATTER = /^---\r?\n[\s\S]*?\r?\n?---[ \t]*(?:\r?\n|$)/;
 
@@ -30,7 +31,6 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
 // chord symbols. A Markdown table always has a `|---|` row, so it never
 // matches.
 
-const CHORD = /^[A-G][#b♯♭]?(?:maj|min|mi|dim|aug|sus|add|alt|m|M|ø|°|o|Δ|\+|-|\d{1,2}|[#b♯♭](?=\d)|\([^)\s]*\))*(?:\/[A-G][#b♯♭]?)?$/;
 const CHART_MARK = /^(%|\/|-|N\.C\.)$/;
 
 function parseChartRow(line: string): string[][] | null {
@@ -39,7 +39,6 @@ function parseChartRow(line: string): string[][] | null {
   return ok && bars.some((bar) => bar.length) ? bars : null;
 }
 
-const prettyChord = (chord: string) => chord.replace(/(^|\/)([A-G])b/g, '$1$2♭').replace(/b(?=\d)/g, '♭').replace(/#/g, '♯');
 
 interface ChordChartToken {
   type: 'chordChart';

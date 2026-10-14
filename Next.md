@@ -77,8 +77,13 @@ To decide:
 - How it relates to the `| Dm7 | G7 |` chord charts that already work inside
   Markdown notes.
 
-## Sound preview (maybe)
+## Sound preview
 
-Play back what a snippet shows: notation, a chord progression, or the notes on
-a fretboard. Possibly with the Web Audio API and a simple synth or sampled
-instrument, a tempo control, and a highlight on what is playing.
+Notation snippets have a basic Play button (Ctrl+Space): a triangle-wave
+synth with the Web Audio API (`src/audio/synth.ts`), fed by
+`src/notation/playback.ts`. Repeats are played once, and tab plays at written
+pitch (an octave above a guitar's).
+
+Still to do: play ```notation blocks in Markdown notes, highlight what is
+playing, honour repeats, a tempo control, a sampled instrument, and playback
+for chord progressions and fretboards.

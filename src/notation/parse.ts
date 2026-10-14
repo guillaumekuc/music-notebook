@@ -172,7 +172,7 @@ function parseToken(raw: string, kind: Staff['kind'], fail: (msg: string) => nev
 }
 
 const hasDuration = (core: string) => new RegExp(`\\/${DURATION}(?=$|[./[])`).test(core);
-const lastDuration = (core: string) => core.match(new RegExp(`\\/(${DURATION})(?=$|[./[])`))?.[1];
+export const lastDuration = (core: string) => core.match(new RegExp(`\\/(${DURATION})(?=$|[./[])`))?.[1];
 
 // Splits a voice into measures at bar lines: | || |] |: :| :|:
 function splitMeasures(text: string, onBar: (index: number, begin?: Bar, end?: Bar) => void): string[] {

@@ -33,7 +33,7 @@ const voiceTime = (time: string) => (time.startsWith('C') ? (time === 'C|' ? '2/
 const range = (n: number) => [...Array(n).keys()];
 
 // What applies at a measure: key, time and each staff's clef.
-function stateAt(piece: Piece, m: number) {
+export function stateAt(piece: Piece, m: number) {
   let key = piece.key;
   let time = piece.time;
   for (let i = 0; i <= m; i++) {
@@ -48,7 +48,7 @@ function stateAt(piece: Piece, m: number) {
   return { key, time, clefs };
 }
 
-const isRestToken = (t: Token) => (t.tab ?? t.chroma)?.rest ?? /\/r(?=$|[./[])/.test(t.core);
+export const isRestToken = (t: Token) => (t.tab ?? t.chroma)?.rest ?? /\/r(?=$|[./[])/.test(t.core);
 
 // Rows of text a staff needs above and below it.
 function textRows(s: Staff) {
@@ -204,7 +204,7 @@ function decorate(entry: Entry) {
 }
 
 // Groups of note indexes marked { ... } in a measure, with their ratio.
-function tupletGroups(tokens: Token[]) {
+export function tupletGroups(tokens: Token[]) {
   const groups: { start: number; end: number; numNotes?: number; notesOccupied?: number }[] = [];
   let open: (typeof groups)[number] | null = null;
   tokens.forEach((t, i) => {

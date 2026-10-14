@@ -26,9 +26,11 @@ import bravuraUrl from '@vexflow-fonts/bravura/bravura.woff2?inline';
 import academicoUrl from '@vexflow-fonts/academico/academico.woff2?inline';
 import { parseNotation } from './parse';
 import { renderPiece, type RenderedNotation } from './render';
+import { perform, type Performance } from './playback';
 
 export { NotationError } from './parse';
 export type { RenderedNotation } from './render';
+export type { Performance } from './playback';
 
 // --- Fonts ---
 
@@ -45,6 +47,11 @@ export function loadNotationFonts(): Promise<void> {
 
 export function renderNotation(code: string): RenderedNotation {
   return renderPiece(parseNotation(code, { hasKey: (k) => VexFlow.hasKeySignature(k) }));
+}
+
+// The notes to play, with their timing.
+export function performNotation(code: string): Performance {
+  return perform(parseNotation(code, { hasKey: (k) => VexFlow.hasKeySignature(k) }));
 }
 
 // A copy of the drawing that renders anywhere: the music fonts are embedded,

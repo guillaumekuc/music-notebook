@@ -433,22 +433,22 @@ select,
   margin-top: 6px;
 }
 
-/* View modes for Markdown notes. */
-#app[data-type='markdown'][data-view='preview'] :is(#code, .code-foot, .reference) {
+/* View modes: preview above the code, beside it, or alone. */
+#app[data-view='preview'] :is(#code, .code-foot, .reference) {
   display: none;
 }
 
 @media (min-width: 1100px) {
-  #app[data-type='markdown'][data-view='side'] .layout {
+  #app[data-view='side'] .layout {
     grid-template-columns: 1fr 1fr;
     align-items: start;
   }
 
-  #app[data-type='markdown'][data-view='side'] .layout > .panel:last-child {
+  #app[data-view='side'] .layout > .panel:last-child {
     order: -1;
   }
 
-  #app[data-type='markdown'][data-view='side'] .code {
+  #app[data-view='side'] .code {
     min-height: 60vh;
   }
 }

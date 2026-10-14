@@ -264,7 +264,8 @@ select,
 /* Panels listed for some snippet types are hidden for the others. */
 #app[data-type='fretboard'] [data-for]:not([data-for~='fretboard']),
 #app[data-type='markdown'] [data-for]:not([data-for~='markdown']),
-#app[data-type='notation'] [data-for]:not([data-for~='notation']) {
+#app[data-type='notation'] [data-for]:not([data-for~='notation']),
+#app[data-type='progression'] [data-for]:not([data-for~='progression']) {
   display: none;
 }
 

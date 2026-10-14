@@ -9,6 +9,8 @@ export const icons = {
   newFretboard: svg('<path d="M1.75 4.25h7.5M1.75 8h7.5M1.75 11.75h5M4.75 2.5v11"/><path d="M12 9v5M9.5 11.5h5"/>'),
   notation: svg('<path d="M6 12V3.25l7.25-1.5v8.75"/><circle cx="4.25" cy="12" r="1.75"/><circle cx="11.5" cy="10.5" r="1.75"/>'),
   newNotation: svg('<path d="M5.5 10.5V2.75l5-1"/><circle cx="3.75" cy="10.5" r="1.75"/><path d="M12 9v5M9.5 11.5h5"/>'),
+  progression: svg('<path d="M1.75 4.25h12.5v7.5H1.75zM6 4.25v7.5M10 4.25v7.5"/>'),
+  newProgression: svg('<path d="M1.75 4.25h7.5v7.5h-7.5zM5.5 4.25v7.5"/><path d="M12 9v5M9.5 11.5h5"/>'),
   newNote: svg('<path d="M9.25 1.75h-5.5v12.5h4"/><path d="M9.25 1.75l3 3v2.5"/><path d="M12 9v5M9.5 11.5h5"/>'),
   plus: svg('<path d="M8 3v10M3 8h10"/>'),
   folderPlus: svg('<path d="M1.75 4.25v8h12.5v-6.5h-6.5l-1.5-1.5h-4.5z"/><path d="M8 7v4M6 9h4"/>'),

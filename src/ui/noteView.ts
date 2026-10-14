@@ -1,6 +1,7 @@
 import { FretboardDiv } from '../fretboard';
 import { renderMarkdown, type MusicBlock } from '../markdown';
 import { renderNotation } from '../notation';
+import { renderProgression } from '../progression';
 import type { Library } from '../storage/library';
 import { escapeHtml } from '../util';
 
@@ -71,9 +72,9 @@ export class NoteView {
     const cached = this.drawings.get(key);
     if (cached) return cached;
     let drawing: Drawing;
-    if (kind === 'notation') {
+    if (kind === 'notation' || kind === 'progression') {
       try {
-        drawing = { svg: renderNotation(code).svg };
+        drawing = { svg: (kind === 'notation' ? renderNotation(code) : renderProgression(code)).svg };
       } catch (e) {
         drawing = { error: e instanceof Error ? e.message : String(e) };
       }

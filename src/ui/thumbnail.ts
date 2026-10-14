@@ -1,5 +1,6 @@
 import { FretboardDiv } from '../fretboard';
 import { renderNotation } from '../notation';
+import { renderProgression } from '../progression';
 import { hashString } from '../util';
 
 const cache = new Map<string, string | null>();
@@ -40,4 +41,21 @@ export function notationThumbnail(code: string): SVGSVGElement | null {
     notationCache.set(key, svg);
   }
   return (notationCache.get(key)?.cloneNode(true) as SVGSVGElement | undefined) ?? null;
+}
+
+const progressionCache = new Map<string, SVGSVGElement | null>();
+
+export function progressionThumbnail(code: string): SVGSVGElement | null {
+  const key = hashString(code);
+  if (!progressionCache.has(key)) {
+    let svg: SVGSVGElement | null = null;
+    try {
+      svg = renderProgression(code).svg;
+    } catch {
+      svg = null;
+    }
+    if (progressionCache.size > 300) progressionCache.clear();
+    progressionCache.set(key, svg);
+  }
+  return (progressionCache.get(key)?.cloneNode(true) as SVGSVGElement | undefined) ?? null;
 }

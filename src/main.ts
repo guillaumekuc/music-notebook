@@ -8,6 +8,7 @@ import type { SnippetType } from './storage/types';
 import { setTask, wordCount } from './markdown';
 import { loadNotationFonts, performNotation, renderNotation, standaloneSvg } from './notation';
 import { Player } from './audio/synth';
+import { renderProgression } from './progression';
 import { NoteView } from './ui/noteView';
 import { attachMarkdownEditor } from './ui/markdownEditor';
 import { Sidebar } from './ui/sidebar';
@@ -21,19 +22,21 @@ const NEW_SNIPPET_CODE: Record<SnippetType, string> = {
   fretboard: 'fretboard\noption frets=12\n',
   markdown: '',
   notation: 'clef treble\ntime 4/4\nvoice C5/q, B4, A4, G4 | E4/h, C4\n',
+  progression: 'root A\n| I.m | bIII.M | bVII.M | IV.M |\n',
 };
 // Share links carry the code in the hash, with a prefix per type.
-const SHARE_PREFIX: Record<SnippetType, string> = { fretboard: 'code', markdown: 'md', notation: 'notation' };
-const CODE_LABEL: Record<SnippetType, string> = { fretboard: 'Fretboard code', markdown: 'Markdown', notation: 'Notation code' };
+const SHARE_PREFIX: Record<SnippetType, string> = { fretboard: 'code', markdown: 'md', notation: 'notation', progression: 'prog' };
+const CODE_LABEL: Record<SnippetType, string> = { fretboard: 'Fretboard code', markdown: 'Markdown', notation: 'Notation code', progression: 'Progression code' };
 const DRAFT_NAME: Record<SnippetType, string> = {
   fretboard: 'Shared snippet',
   markdown: 'Shared note',
   notation: 'Shared notation',
+  progression: 'Shared progression',
 };
 // How the preview and the code are laid out, chosen per snippet type.
 const VIEWS = ['stacked', 'side', 'preview'] as const;
 type View = (typeof VIEWS)[number];
-const DEFAULT_VIEW: Record<SnippetType, View> = { fretboard: 'stacked', notation: 'stacked', markdown: 'stacked' };
+const DEFAULT_VIEW: Record<SnippetType, View> = { fretboard: 'stacked', notation: 'stacked', progression: 'stacked', markdown: 'stacked' };
 const viewKey = (type: SnippetType) => `music-notebook:view:${type}`;
 // Where the Markdown view was kept before every type had one.
 const OLD_NOTE_VIEW_KEY = 'music-notebook:note-view';
@@ -66,7 +69,7 @@ app.innerHTML = `
               </select>
             </label>
           </div>
-          <div class="actions" data-for="fretboard notation">
+          <div class="actions" data-for="fretboard notation progression">
             <button type="button" id="play" class="btn" data-for="notation" title="Play (Ctrl+Space)"></button>
             <label class="field">Scale
               <select id="scale">
@@ -84,7 +87,7 @@ app.innerHTML = `
             <button type="button" id="save-md" class="btn">Save .md</button>
           </div>
         </div>
-        <div class="stage" id="stage" data-for="fretboard notation"></div>
+        <div class="stage" id="stage" data-for="fretboard notation progression"></div>
         <div class="note" id="note" data-for="markdown"></div>
         <p class="status" id="status" role="status" aria-live="polite"></p>
       </section>
@@ -164,6 +167,31 @@ C4/h~, C4/q         tie
               Lines starting with <code>#</code> are comments.</p>
           </div>
         </details>
+        <details class="reference" data-for="progression">
+          <summary>Progression reference</summary>
+          <div class="reference-body">
+            <h3>Settings</h3>
+            <pre>root A                   the root the first chord relates to (optional)
+width 700                grid width in px
+section Verse            a label for the rows that follow</pre>
+            <h3>Bars</h3>
+            <pre>| Am | C | G  F |        one row; | separates bars
+|| |] |: :| :|: :|x3     double, final and repeat bar lines
+|[1 E7 :|[2 Am |]        1st and 2nd endings
+C / / G                  / holds the chord for one more slot
+%   N.C.                 repeat the previous bar · no chord</pre>
+            <h3>Chords</h3>
+            <pre>Am  Bb7  F#m7b5  G/B     chord symbols
+bIII.M  V.M(b7)          relationships: interval.quality(added)
+I.m(11)                  same root: e.g. the first chord, without a root</pre>
+            <p>A relationship goes from the previous chord: the Roman numeral is the interval up from
+              its root, then the new quality (M major, m minor, d diminished, A augmented) and any
+              added intervals (7 is a major 7th, b7 a minor 7th; 9, #11, …). Each cell shows the
+              chord symbol and the relationship, whichever was written. Without a root, a
+              progression written in relationships shows them only.
+              Lines starting with <code>#</code> are comments.</p>
+          </div>
+        </details>
         <details class="reference" data-for="markdown">
           <summary>Markdown reference</summary>
           <div class="reference-body">
@@ -183,6 +211,9 @@ show notes=5/6,7/6     fretboard syntax
 | Dm7 | G7 | Cmaj7 % |  a chord chart (one bar per cell)
 \`\`\`notation            music notation, in the
 voice C5/q, B4, A4, G4 notation syntax
+\`\`\`
+\`\`\`progression         a chord progression grid, in
+| Am | bIII.M | F |     the progression syntax
 \`\`\`
 [[G major]]             link to a snippet by name
 [[G major|the shape]]   … with your own label</pre>
@@ -268,6 +299,7 @@ function render() {
   player.stop();
   if (currentType === 'markdown') return renderNote();
   if (currentType === 'notation') return renderScore();
+  if (currentType === 'progression') return renderGrid();
   const next = new FretboardDiv();
   try {
     const canvas = next.build(codeInput.value);
@@ -283,6 +315,16 @@ function render() {
 function renderScore() {
   try {
     const { svg, width, height } = renderNotation(codeInput.value);
+    currentNotation = svg;
+    showDrawing(svg, width, height);
+  } catch (e) {
+    showRenderError(e, currentNotation !== null);
+  }
+}
+
+function renderGrid() {
+  try {
+    const { svg, width, height } = renderProgression(codeInput.value);
     currentNotation = svg;
     showDrawing(svg, width, height);
   } catch (e) {
@@ -519,7 +561,7 @@ interface SharedCode {
 }
 
 function sharedFromHash(): SharedCode | null {
-  const m = location.hash.match(/^#(code|md|notation)=(.*)$/);
+  const m = location.hash.match(/^#(code|md|notation|prog)=(.*)$/);
   const code = m ? decodeCode(m[2]) : null;
   if (code == null) return null;
   const type = (Object.keys(SHARE_PREFIX) as SnippetType[]).find((t) => SHARE_PREFIX[t] === m![1])!;
@@ -551,6 +593,7 @@ function exportName(ext: string): string {
 
 function currentSvg(): string | null {
   if (currentType === 'notation') return currentNotation ? standaloneSvg(currentNotation) : null;
+  if (currentType === 'progression') return currentNotation ? new XMLSerializer().serializeToString(currentNotation) : null;
   if (!current?.scope) return null;
   return current.scope.project.exportSVG({ asString: true, bounds: 'view' }) as string;
 }

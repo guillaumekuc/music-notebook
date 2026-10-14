@@ -62,20 +62,31 @@ The images in the library's search results are too small to read, and snippet
 names are evocative enough. Remove them (`src/ui/sidebar.ts`,
 `src/ui/thumbnail.ts`) and show name, folder, tags and date only.
 
-## A format for chord progressions
+## Chord progressions
 
-A dedicated snippet type for chord progressions and the relationships between
-chords, laid out as a bar grid.
+Done: the `progression` snippet type and ```` ```progression ```` blocks in
+notes (see the README). Each cell shows the chord symbol and the chord
+relationship (CR) from the chord before, as in Chordex (`m ♭III M`), whichever
+of the two was written.
 
-To decide:
+Decided:
 
-- Chord symbols (`Dm7 G7 Cmaj7`), Roman numerals (`ii V I`), or both, and
-  whether the app converts between them for a given key.
-- How to show relationships: functions, root movement, common tones, voice
-  leading.
-- Bar grid details: chords per bar, repeats, endings, sections (A, B, bridge).
-- How it relates to the `| Dm7 | G7 |` chord charts that already work inside
-  Markdown notes.
+- **CR tokens** are `interval.quality(added)`, e.g. `bIII.M(9)`. The
+  from-quality is left out, since the previous chord carries it. The
+  interval is always written, so a first chord with no root is `I.m(11)`.
+- **Added intervals** are intervals over the triad, not chord-symbol suffixes:
+  `7` is a major 7th, `b7` a minor 7th.
+- **The root is optional.** Without one, a CR-only progression shows CRs only.
+
+Later:
+
+- Key-relative Roman numeral analysis (`ii V I`), next to the CRs.
+- The CR of the jump back at a `:|` (the turnaround).
+- Sus chords as a quality, so their CRs aren't `?`.
+- A slash bass on CR tokens (`V.M/3`).
+- Replace the `| Dm7 | G7 |` chord charts in Markdown notes with progression
+  blocks.
+- Play a progression (see Sound preview).
 
 ## Sound preview
 

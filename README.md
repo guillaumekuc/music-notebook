@@ -7,6 +7,8 @@ A single-page app for taking quick musical notes. Each snippet is one of:
   [0xfe/fretboard](https://github.com/0xfe/fretboard).
 - **Notation:** standard music notation, rendered with
   [VexFlow](https://www.vexflow.com) (see [Notation syntax](#notation-syntax)).
+- **Chord progression:** a bar grid of chords, written as chord symbols, chord
+  relationships or both (see [Progression syntax](#progression-syntax)).
 - **Markdown note:** plain notes in Markdown (GitHub flavour: tables, task lists,
   strikethrough). A single line break is kept as a line break.
 
@@ -23,6 +25,10 @@ show fret=3 string=6 text=G
 ```notation                   music notation inside the note
 key D
 voice D5/q, C#5, B4, A4
+```
+
+```progression                a chord progression grid
+| Am | bIII.M | bVII.M |
 ```
 
 | Dm7 | G7 | Cmaj7 % |        a chord chart: one bar per cell
@@ -45,7 +51,7 @@ voice D5/q, C#5, B4, A4
   good render stays on screen (dimmed) and the error shows with its line number.
 - **Save PNG** exports at 1×–4× scale, on white or a transparent background
   (shortcut: Ctrl/Cmd+Shift+S). **Save SVG** exports vector output.
-- **Save PNG** and **Save SVG** work for notation too; the SVG embeds the music
+- **Save PNG** and **Save SVG** work for notation and progressions too; the SVG embeds the music
   font, so it displays correctly anywhere.
 - **Save .md** downloads a Markdown note as a file.
 - **Copy share link** puts the code in the URL. Opening such a link shows it as a
@@ -70,7 +76,8 @@ storage, so the app works offline and needs no server or account.
   Search and filter results show a thumbnail of each snippet.
 - **Use on several devices (Chrome/Edge):** click **Connect folder…** and pick a
   folder inside Dropbox, OneDrive, iCloud Drive or a git repo. The library is
-  mirrored there as real directories, `.fret`, `.notation` and `.md` files:
+  mirrored there as real directories, `.fret`, `.notation`, `.progression` and
+  `.md` files:
 
   ```
   Chords/
@@ -80,7 +87,7 @@ storage, so the app works offline and needs no server or account.
     Practice log.md
   ```
 
-  Each `.fret` and `.notation` file starts with an `# id / # name / # tags`
+  Each `.fret`, `.notation` and `.progression` file starts with an `# id / # name / # tags`
   header. These are comments in both syntaxes, so every file is still valid code.
   Each `.md` file holds the same fields as YAML front matter; other front matter
   keys (from Obsidian, say) are kept. Any `.md` file in the folder becomes a
@@ -169,6 +176,56 @@ crescendo hairpins, ottava lines, cross-staff beams and multi-measure rests.
 Code: `src/notation/` (`parse.ts` reads the text, `render.ts` lays it out with
 VexFlow, `chromatic.ts` draws chromatic staves). The music fonts (Bravura and Academico, SIL OFL) are bundled, so
 notation works offline.
+
+## Progression syntax
+
+A progression is drawn as a grid with one cell per bar. Each chord shows its
+symbol and its **chord relationship** (CR): how it relates to the chord before
+it, written as in [Chordex](https://guillaumekuc.github.io/chordex/). `m ♭III M`
+reads "from a minor chord, up a minor third to a major chord". Write either
+one and the other is worked out; the two can be mixed freely.
+
+```
+root A                         the root the first chord relates to (optional)
+width 700                      grid width in px
+section A                      a label for the rows that follow
+|: I.m(b7) | bIII.M | bVII.M | IV.M(b7) |
+| Am  G | F  E7 |[1 Am | E7 :|[2 Am | % ||
+section B
+| Dm | V.M(b7) | Cmaj7 / / A7 | N.C. :|x2
+```
+
+**Rows and bars.** Each line is one row. `|` separates bars; `||`, `|]`, `|:`,
+`:|` and `:|:` are double, final and repeat bar lines, and `:|x3` adds a repeat
+count. `[1`, `[2` after a bar line start a 1st or 2nd ending. The chords in a
+bar share it evenly; `/` holds the chord before for one more slot (`C / / G`),
+`%` repeats the previous bar and `N.C.` is no chord.
+
+**Chords.** A chord symbol: `Am`, `Bb7`, `F#m7b5`, `C6/9`, `G/B`. Or a
+relationship, `interval.quality(added)`:
+
+| Part | Values |
+| --- | --- |
+| interval | a Roman numeral up from the previous chord's root: `I` `bII` `II` `bIII` … `VII` (`b`/`♭`, `#`/`♯`) |
+| quality | `M` major, `m` minor, `d` diminished, `A` augmented |
+| added | intervals added above the root: `7` (major 7th), `b7` (minor 7th), `bb7`, `6`, `9`, `b9`, `#11`, `13`, … |
+
+So `V.M(b7)` is a dominant 7th a fifth up, `bIII.M(7,9)` a maj9 a minor third
+up. `I.m(11)` keeps the root and makes it minor; it is also how a
+progression without a root starts.
+
+**Working it out.** A relationship is measured from the chord written before
+it. For the first chord that is `root`, when there is one. Without a root, a
+progression written in relationships shows only the relationships; an absolute
+chord after them shows its symbol but no relationship. Relationships skip
+`N.C.` and follow `%`, and a 2nd ending is measured from the chord before the
+1st. The root of a relationship is spelled from its numeral (`bIII` above A is
+C, `#IV` above C is F♯), and chord symbols are built from the quality and the
+added intervals (M + ♭7 is `7`, M + 7 `maj7`, d + ♭7 `ø7`). Sus and power
+chords have no triad quality, so their relationships show `?`.
+
+Code: `src/progression/` (`theory.ts` chords and intervals, `parse.ts` the text
+and the relationships, `render.ts` the SVG grid).
 
 ## Fretboard syntax
 

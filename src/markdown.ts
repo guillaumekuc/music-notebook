@@ -2,6 +2,7 @@ import { Marked, type Tokens } from 'marked';
 import DOMPurify from 'dompurify';
 import { escapeHtml } from './util';
 import { ATTACHMENTS_DIR } from './storage/types';
+import { CHORD, prettyChord } from './progression/theory';
 
 const FRONT_MATTER = /^---\r?\n[\s\S]*?\r?\n?---[ \t]*(?:\r?\n|$)/;
 
@@ -30,7 +31,6 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
 // chord symbols. A Markdown table always has a `|---|` row, so it never
 // matches.
 
-const CHORD = /^[A-G][#b♯♭]?(?:maj|min|mi|dim|aug|sus|add|alt|m|M|ø|°|o|Δ|\+|-|\d{1,2}|[#b♯♭](?=\d)|\([^)\s]*\))*(?:\/[A-G][#b♯♭]?)?$/;
 const CHART_MARK = /^(%|\/|-|N\.C\.)$/;
 
 function parseChartRow(line: string): string[][] | null {
@@ -39,7 +39,6 @@ function parseChartRow(line: string): string[][] | null {
   return ok && bars.some((bar) => bar.length) ? bars : null;
 }
 
-const prettyChord = (chord: string) => chord.replace(/(^|\/)([A-G])b/g, '$1$2♭').replace(/b(?=\d)/g, '♭').replace(/#/g, '♯');
 
 interface ChordChartToken {
   type: 'chordChart';
@@ -58,9 +57,9 @@ interface WikiLinkToken {
 
 // --- Renderer ---
 
-// ```fretboard and ```notation blocks in the note being rendered; the note
+// ```fretboard, ```notation and ```progression blocks in the note being rendered; the note
 // view draws them into the placeholders.
-export type MusicBlockKind = 'fretboard' | 'notation';
+export type MusicBlockKind = 'fretboard' | 'notation' | 'progression';
 export interface MusicBlock {
   kind: MusicBlockKind;
   code: string;
@@ -73,7 +72,7 @@ const marked = new Marked({
   renderer: {
     code({ text, lang }: Tokens.Code) {
       const kind = lang?.trim().toLowerCase();
-      if (kind !== 'fretboard' && kind !== 'notation') return false;
+      if (kind !== 'fretboard' && kind !== 'notation' && kind !== 'progression') return false;
       musicBlocks.push({ kind, code: text });
       return `<div class="music-block" data-block="${musicBlocks.length - 1}"></div>\n`;
     },

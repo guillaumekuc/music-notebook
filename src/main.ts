@@ -187,7 +187,7 @@ C4/h~, C4/q         tie
             <h3>Settings</h3>
             <pre>root A                   the root the first chord relates to (optional)
 width 700                grid width in px
-tempo 100  time 3/4      for Play: quarter notes per minute, beats per bar
+tempo 100  time 3/4      quarter notes per minute, beats per bar (shown, and used by Play)
 section Verse            a label for the rows that follow</pre>
             <h3>Bars</h3>
             <pre>| Am | C | G  F |        one row; | separates bars

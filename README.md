@@ -189,8 +189,8 @@ one and the other is worked out; the two can be mixed freely.
 ```
 root A                         the root the first chord relates to (optional)
 width 700                      grid width in px
-tempo 100                      quarter notes per minute, for Play
-time 3/4                       beats per bar, for Play (default 4/4)
+tempo 100                      quarter notes per minute (shown, and used by Play)
+time 3/4                       beats per bar (shown, and used by Play; default 4/4)
 section A                      a label for the rows that follow
 |: I.m(b7) | bIII.M | bVII.M | IV.M(b7) |
 | Am  G | F  E7 |[1 Am | E7 :|[2 Am | % ||

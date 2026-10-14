@@ -54,6 +54,12 @@ export function renderProgression(p: Progression): RenderedProgression {
   const roomAbove = (bars: Bar[]) => (bars.some((b) => b.endingStart || b.repeatCount) ? ENDING_ROOM : 0);
 
   let y = PAD;
+  // Tempo and time, when written, above the grid: `♩ = 100 · 3/4`.
+  const marks = [p.marks.tempo ? `♩ = ${p.marks.tempo}` : '', p.marks.time ?? ''].filter(Boolean).join('  ·  ');
+  if (marks) {
+    add(el('text', { x: PAD, y: y + 14, 'font-family': FONT, 'font-size': 15, 'font-weight': 'bold', fill: INK }, marks));
+    y += 24;
+  }
   let barIndex = 0; // across all rows, for highlighting during playback
   for (const row of p.rows) {
     y += roomAbove(row.bars);

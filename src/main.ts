@@ -48,7 +48,7 @@ app.innerHTML = `
     <button type="button" id="library-toggle" class="btn only-narrow" aria-label="Open library">${icons.library} Library</button>
     <div>
       <h1>Music Notebook</h1>
-      <p>Quick musical notes: fretboard diagrams, notation and Markdown, rendered as you type.</p>
+      <p>Quick musical notes: fretboard diagrams, notation, chord progressions and Markdown, rendered as you type.</p>
     </div>
   </header>
 

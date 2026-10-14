@@ -28,6 +28,8 @@ export interface Token {
   // Notation staves: an EasyScore note. Tab staves: positions or a rest.
   core: string;
   tab?: { positions: { str: number; fret: number | 'x' }[]; rest: boolean; duration: string; dots: number; techniques: string };
+  // Chromatic staves: MIDI numbers or a rest.
+  chroma?: { midi: number[]; rest: boolean; duration: string; dots: number };
   slurStarts: number;
   slurEnds: number;
   tuplet?: { numNotes?: number; notesOccupied?: number };
@@ -50,7 +52,7 @@ export interface VoiceSrc {
 }
 
 export interface Staff {
-  kind: 'notation' | 'tab';
+  kind: 'notation' | 'tab' | 'chromatic';
   clef: string;
   tuning: string;
   // A tab staff that also shows its notes in standard notation above it.
@@ -58,6 +60,8 @@ export interface Staff {
   voices: VoiceSrc[];
   // Clef changes, by measure index.
   clefAt: Map<number, string>;
+  // A chromatic staff's octaves, lowest and highest, if set.
+  octaves?: [number, number];
 }
 
 export interface Piece {
@@ -155,6 +159,14 @@ function parseToken(raw: string, kind: Staff['kind'], fail: (msg: string) => nev
       str: Number(p[2]),
     }));
     tok.tab = { positions, rest, duration: m[2] ?? '', dots: m[3].length, techniques: m[4].toLowerCase() };
+  } else if (kind === 'chromatic') {
+    const m = t.match(new RegExp(`^(r|\\d+|\\((?:\\s*\\d+)+\\s*\\))(?:\\/(${DURATION}))?(\\.*)$`, 'i'));
+    if (!m) fail(`Can't read chromatic note “${t}”. Write MIDI numbers (60 = C4), e.g. 60/q, (60 64 67)/h or r/q`);
+    const rest = m[1].toLowerCase() === 'r';
+    const midi = rest ? [] : [...m[1].matchAll(/\d+/g)].map((n) => Number(n[0]));
+    const bad = midi.find((n) => n > 127);
+    if (bad !== undefined) fail(`MIDI notes go from 0 to 127, not ${bad}`);
+    tok.chroma = { midi, rest, duration: m[2] ?? '', dots: m[3].length };
   }
   return tok;
 }
@@ -210,7 +222,7 @@ export function parseNotation(code: string, v: Validators): Piece {
       case 'clef': {
         checkClef(arg);
         const s = currentStaff();
-        if (s.kind === 'tab') fail('A tab staff has no clef');
+        if (s.kind !== 'notation') fail(`A ${s.kind} staff has no clef`);
         s.clef = arg;
         break;
       }
@@ -251,6 +263,15 @@ export function parseNotation(code: string, v: Validators): Piece {
               s.tuning = tuning;
             } else fail(`Unknown tab staff option: ${w}. Use notation or tuning=…`);
           }
+        } else if (first === 'chromatic') {
+          const s = newStaff('chromatic', 'chromatic');
+          for (const w of words) {
+            const opt = w.match(/^range=(-?\d+)(?:-(-?\d+))?$/i);
+            if (!opt) fail(`Unknown chromatic staff option: ${w}. Use range=, e.g. range=3-5 for octaves 3 to 5`);
+            const [low, high] = [Number(opt[1]), Number(opt[2] ?? opt[1])];
+            if (low < -1 || high > 9 || low > high) fail('A range goes from a low octave to a high one, between -1 and 9');
+            s.octaves = [low, high];
+          }
         } else {
           checkClef(first);
           if (words.length) fail(`Unknown staff option: ${words[0]}`);
@@ -273,16 +294,17 @@ export function parseNotation(code: string, v: Validators): Piece {
             const [what, value] = [mm[1].toLowerCase(), mm[2].trim()];
             if (what === 'key') piece.keyAt.set(mi, checkKey(value) && value);
             else if (what === 'time') piece.timeAt.set(mi, checkTime(value) && value);
-            else if (s.kind === 'tab') fail('A tab staff has no clef');
+            else if (s.kind !== 'notation') fail(`A ${s.kind} staff has no clef`);
             else s.clefAt.set(mi, checkClef(value) && value);
             text = text.slice(mm[0].length);
           }
           const tokens = splitTokens(text).map((t) => parseToken(t, s.kind, fail));
           // A duration carries over to the next notes, also across bar lines.
           for (const tok of tokens) {
-            if (tok.tab) {
-              if (tok.tab.duration) duration = tok.tab.duration;
-              else tok.tab.duration = duration;
+            const own = tok.tab ?? tok.chroma;
+            if (own) {
+              if (own.duration) duration = own.duration;
+              else own.duration = duration;
             } else if (hasDuration(tok.core)) {
               duration = lastDuration(tok.core)!;
             } else if (tok === tokens[0] && !tok.core.includes('/')) {
@@ -309,7 +331,7 @@ export function parseNotation(code: string, v: Validators): Piece {
 
   if (!piece.staves.some((s) => s.voices.length)) throw new NotationError('Add a voice, e.g. voice C4/q, D4, E4, F4');
   for (const s of piece.staves) {
-    if (!s.voices.length) throw new NotationError(`A ${s.kind === 'tab' ? 'tab' : s.clef} staff has no voice`);
+    if (!s.voices.length) throw new NotationError(`A ${s.kind === 'notation' ? s.clef : s.kind} staff has no voice`);
   }
   return piece;
 }

@@ -114,6 +114,15 @@ staff bass
 voice (G2 D3)/1 | (G2 D3 G3)/1 |]`,
   },
   {
+    name: 'Notation: chromatic staff',
+    type: 'notation',
+    code: `# MIDI numbers, 60 = C4. Even notes sit on lines (solid), odd ones in
+# spaces (hollow); every C is a bold line. Half notes have a double stem.
+time 4/4
+staff chromatic range=4-5
+voice 60/8, 62, 64, 65, 67, 69, 71, 72 | (60 64 67)/h, (62 65 69)/q, r | 72/q., 71/8, 69/q, 67 | 64/h, 60 | 60/1 |]`,
+  },
+  {
     name: 'Notation: bass line',
     type: 'notation',
     code: `clef bass

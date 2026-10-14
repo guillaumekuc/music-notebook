@@ -9,6 +9,8 @@
 //   width 700                   width in px; measures wrap onto new lines
 //   staff bass                  starts another staff (a grand staff with two)
 //   staff tab notation          a tab staff, with notation worked out above
+//   staff chromatic range=3-5   a chromatic staff (see chromatic.ts); notes
+//                               are MIDI numbers: 60/q, (60 64 67)/h, r/q
 //   voice C5/q, B4 | E4/h~, E4  `|` separates measures; ||  |]  |:  :| bars
 //   lyrics Hel- lo world        one word per note of the voice above
 //
